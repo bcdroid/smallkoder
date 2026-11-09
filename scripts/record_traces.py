@@ -2,8 +2,8 @@
 
 Usage (from the repository root, with OPENCODE_GO in the environment or .env):
 
-    python scripts/record_traces.py                 # record every scenario
-    python scripts/record_traces.py add_docstring   # just one
+    uv run scripts/record_traces.py                 # record every scenario
+    uv run scripts/record_traces.py add_docstring   # just one
 
 Each scenario runs in a fresh temporary directory. The trace files contain
 messages and replies only: never the key or any HTTP headers.

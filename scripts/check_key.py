@@ -2,7 +2,7 @@
 
 Usage (from the repository root, with OPENCODE_GO in the environment or .env):
 
-    python scripts/check_key.py
+    uv run scripts/check_key.py
 
 Sends one short prompt to the default model through the same code smallkoder
 uses (OpenCodeModel), so it checks the endpoint, headers and key together.

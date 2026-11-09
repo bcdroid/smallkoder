@@ -3,9 +3,10 @@ name = "smallkoder"
 version = "0.1.0"
 description = "A small CLI coding assistant, for reading in class"
 requires-python = ">=3.12"
-dependencies = []  # standard library only
+dependencies = []
 
-[project.optional-dependencies]
+# Managed with uv: `uv add <pkg>`, `uv add --dev <pkg>`, `uv sync`.
+[dependency-groups]
 dev = ["pytest>=7"]
 
 [project.scripts]

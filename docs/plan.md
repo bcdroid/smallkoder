@@ -199,6 +199,9 @@ The plan above is kept as written; the code differs in small ways:
   `main()`.
 - The guard hook's override marker is `# test-guard: <reason>` for both skips and
   assertion changes.
+- After v0.1 (2026-11-09): the "standard library only" rule was dropped, and uv now
+  does all package management (`uv sync`, `uv add`, `uv run`; `uv.lock` committed).
+  pytest moved to a `dev` dependency group, and the test hook runs `uv run pytest`.
 
 ## Out of scope for v0.1
 

@@ -1,8 +1,8 @@
 # smallkoder
 
 A small command-line coding assistant, written to be read. It is the same idea as
-Claude Code, pi or Codex, cut down to about 460 lines of plain Python with no
-dependencies: an interactive loop, one model API, and two tools.
+Claude Code, pi or Codex, cut down to about 460 lines of plain Python: an
+interactive loop, one model API, and two tools.
 
 ```
 $ smallkoder
@@ -29,15 +29,22 @@ sources), [docs/plan.md](docs/plan.md) (the design), [docs/backlog.md](docs/back
 
 ## Running it
 
-You need Python 3.12+ and an [OpenCode Go](https://opencode.ai) API key.
+You need [uv](https://docs.astral.sh/uv/) and an [OpenCode Go](https://opencode.ai) API key.
+uv installs Python 3.12+ if needed.
+
+**Use uv for all package management**: `uv sync` to set up, `uv add <pkg>` (or
+`uv add --dev <pkg>`) to add a dependency, `uv run ...` to run things. Not `pip`, and
+don't edit dependency lists in `pyproject.toml` by hand. Commit `uv.lock` with any
+dependency change.
 
 ```sh
 echo 'OPENCODE_GO=your-key-here' > .env      # .env is gitignored; never commit it
-python scripts/check_key.py                  # optional: one tiny request to test the key
-python -m smallkoder                         # from this directory
+uv sync                                      # create .venv with smallkoder and pytest
+uv run scripts/check_key.py                  # optional: one tiny request to test the key
+uv run smallkoder                            # from this directory
 ```
 
-To use it in another project, install it (`pip install -e .`) and run `smallkoder` there,
+To use it in another project, install it (`uv tool install -e .`) and run `smallkoder` there,
 with `OPENCODE_GO` set in your environment or in that project's `.env`. Pick a different
 model with `--model glm-5.3-flash`. The default, `mimo-v2.6-flash`, is the cheapest
 OpenCode Go model on the chat completions API.
@@ -61,7 +68,7 @@ what lets the tests swap in fakes.
 ## Tests
 
 ```sh
-python -m pytest            # 125 tests, ~0.5 s, no network, no key needed
+uv run pytest               # 125 tests, ~0.5 s, no network, no key needed
 ```
 
 | Kind | Where | What it shows |
@@ -70,7 +77,7 @@ python -m pytest            # 125 tests, ~0.5 s, no network, no key needed
 | **Scripted fake model** | `test_agent.py`, `test_cli.py`, [`fakes.py`](tests/fakes.py) | `ScriptedModel([tool_calls(...), answer(...)])` plays the model: "first ask to read hello.py, then answer". Tests the loop with no API |
 | **Fault injection** | `test_agent.py`, `test_cli.py`, `test_model.py` | Fakes that send invalid JSON arguments, unknown tools, missing arguments, endless tool calls, HTTP errors, malformed responses |
 | **Recorded traces, replayed** | `test_recorded_sessions.py`, [`tests/traces/`](tests/traces) | Six real sessions with the real model, saved as JSON. `ReplayModel` serves the recorded replies and fails if our code sends anything different. The loop, tools and files all run for real |
-| Live API | `test_live.py` | Opt-in only: `SMALLKODER_LIVE=1 python -m pytest -m live` |
+| Live API | `test_live.py` | Opt-in only: `SMALLKODER_LIVE=1 uv run pytest -m live` |
 | The guardrails themselves | `test_guardrails.py`, `test_guard_hook.py` | The network block and the Claude Code hook below |
 
 ### Re-recording the traces
@@ -81,12 +88,12 @@ the first differing message. That is deliberate: you changed what the model sees
 re-record (needs the key; costs well under a cent):
 
 ```sh
-python scripts/record_traces.py                  # all scenarios
-python scripts/record_traces.py add_docstring    # just one
+uv run scripts/record_traces.py                  # all scenarios
+uv run scripts/record_traces.py add_docstring    # just one
 ```
 
 Scenarios are defined at the top of [`scripts/record_traces.py`](scripts/record_traces.py).
-The model may answer differently each time, so after re-recording run `pytest`, check
+The model may answer differently each time, so after re-recording run `uv run pytest`, check
 the per-scenario tests still pass (e.g. "the declined write left the file alone"), and
 look at `git diff tests/traces` before committing. Only messages and replies are recorded,
 never the key or HTTP headers, and a test checks that.

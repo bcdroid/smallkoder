@@ -1,7 +1,7 @@
 """Real-API tests. Skipped unless you opt in, because they need a key,
 cost (a tiny amount of) money, and the model's answers vary:
 
-    SMALLKODER_LIVE=1 python -m pytest -m live
+    SMALLKODER_LIVE=1 uv run pytest -m live
 """
 
 import os

@@ -7,7 +7,7 @@ from what was recorded. Everything else (the loop, the tools, the files on
 disk) runs for real.
 
 If you change the system prompt or tool schemas, these fail on purpose:
-re-record with `python scripts/record_traces.py`.
+re-record with `uv run scripts/record_traces.py`.
 """
 
 import json
