@@ -9,6 +9,8 @@ import copy
 import json
 from pathlib import Path
 
+from smallkoder.agent import new_conversation, run_turn
+
 
 class TraceMismatch(AssertionError):
     """The code sent something different from what was recorded."""
@@ -75,8 +77,6 @@ def record_session(model, files, prompts, approvals, workdir: Path) -> dict:
     prompts, used in order (False once they run out). The trace keeps the
     answers actually used, so a replay can give the same ones.
     """
-    from smallkoder.agent import new_conversation, run_turn  # avoids an import cycle
-
     for name, text in files.items():
         (workdir / name).parent.mkdir(parents=True, exist_ok=True)
         (workdir / name).write_text(text)
