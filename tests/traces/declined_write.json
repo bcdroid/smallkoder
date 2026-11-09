@@ -1,0 +1,294 @@
+{
+  "description": "The user says no to a write; the file must not change.",
+  "model": "mimo-v2.6-flash",
+  "recorded": "2026-11-09",
+  "files_before": {
+    "config.py": "DEBUG = False\n"
+  },
+  "prompts": [
+    "Change DEBUG to True in config.py."
+  ],
+  "approvals": [
+    false
+  ],
+  "answers": [
+    "The write was declined, so `config.py` still has `DEBUG = False`. Let me know if you'd like a different change."
+  ],
+  "files_after": {
+    "config.py": "DEBUG = False\n"
+  },
+  "exchanges": [
+    {
+      "request": {
+        "messages": [
+          {
+            "role": "system",
+            "content": "You are smallkoder, a small coding assistant working in the user's project directory. You have two tools: read_file returns a file's contents, and write_file replaces a whole file. Use paths relative to the project directory. Read a file before changing it, and when you write, send the complete new file. The user approves every write; if they decline, do not try again unless they ask. Keep your answers short."
+          },
+          {
+            "role": "user",
+            "content": "Change DEBUG to True in config.py."
+          }
+        ],
+        "tools": [
+          {
+            "type": "function",
+            "function": {
+              "name": "read_file",
+              "description": "Read a text file in the working directory and return its contents.",
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "path": {
+                    "type": "string",
+                    "description": "File path, relative to the working directory."
+                  }
+                },
+                "required": [
+                  "path"
+                ],
+                "additionalProperties": false
+              }
+            }
+          },
+          {
+            "type": "function",
+            "function": {
+              "name": "write_file",
+              "description": "Replace the entire contents of a file, creating it if needed. Always send the complete new file, not just the changed part. The user must approve each write.",
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "path": {
+                    "type": "string",
+                    "description": "File path, relative to the working directory."
+                  },
+                  "content": {
+                    "type": "string",
+                    "description": "The complete new contents of the file."
+                  }
+                },
+                "required": [
+                  "path",
+                  "content"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        ]
+      },
+      "response": {
+        "role": "assistant",
+        "content": null,
+        "tool_calls": [
+          {
+            "id": "call_a90afbd78654442b98931089",
+            "type": "function",
+            "function": {
+              "name": "read_file",
+              "arguments": "{\"path\": \"config.py\"}"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "request": {
+        "messages": [
+          {
+            "role": "system",
+            "content": "You are smallkoder, a small coding assistant working in the user's project directory. You have two tools: read_file returns a file's contents, and write_file replaces a whole file. Use paths relative to the project directory. Read a file before changing it, and when you write, send the complete new file. The user approves every write; if they decline, do not try again unless they ask. Keep your answers short."
+          },
+          {
+            "role": "user",
+            "content": "Change DEBUG to True in config.py."
+          },
+          {
+            "role": "assistant",
+            "content": null,
+            "tool_calls": [
+              {
+                "id": "call_a90afbd78654442b98931089",
+                "type": "function",
+                "function": {
+                  "name": "read_file",
+                  "arguments": "{\"path\": \"config.py\"}"
+                }
+              }
+            ]
+          },
+          {
+            "role": "tool",
+            "tool_call_id": "call_a90afbd78654442b98931089",
+            "content": "DEBUG = False\n"
+          }
+        ],
+        "tools": [
+          {
+            "type": "function",
+            "function": {
+              "name": "read_file",
+              "description": "Read a text file in the working directory and return its contents.",
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "path": {
+                    "type": "string",
+                    "description": "File path, relative to the working directory."
+                  }
+                },
+                "required": [
+                  "path"
+                ],
+                "additionalProperties": false
+              }
+            }
+          },
+          {
+            "type": "function",
+            "function": {
+              "name": "write_file",
+              "description": "Replace the entire contents of a file, creating it if needed. Always send the complete new file, not just the changed part. The user must approve each write.",
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "path": {
+                    "type": "string",
+                    "description": "File path, relative to the working directory."
+                  },
+                  "content": {
+                    "type": "string",
+                    "description": "The complete new contents of the file."
+                  }
+                },
+                "required": [
+                  "path",
+                  "content"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        ]
+      },
+      "response": {
+        "role": "assistant",
+        "content": null,
+        "tool_calls": [
+          {
+            "id": "call_ef33c90642ef48ddbe0b267f",
+            "type": "function",
+            "function": {
+              "name": "write_file",
+              "arguments": "{\"path\": \"config.py\", \"content\": \"DEBUG = True\\n\"}"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "request": {
+        "messages": [
+          {
+            "role": "system",
+            "content": "You are smallkoder, a small coding assistant working in the user's project directory. You have two tools: read_file returns a file's contents, and write_file replaces a whole file. Use paths relative to the project directory. Read a file before changing it, and when you write, send the complete new file. The user approves every write; if they decline, do not try again unless they ask. Keep your answers short."
+          },
+          {
+            "role": "user",
+            "content": "Change DEBUG to True in config.py."
+          },
+          {
+            "role": "assistant",
+            "content": null,
+            "tool_calls": [
+              {
+                "id": "call_a90afbd78654442b98931089",
+                "type": "function",
+                "function": {
+                  "name": "read_file",
+                  "arguments": "{\"path\": \"config.py\"}"
+                }
+              }
+            ]
+          },
+          {
+            "role": "tool",
+            "tool_call_id": "call_a90afbd78654442b98931089",
+            "content": "DEBUG = False\n"
+          },
+          {
+            "role": "assistant",
+            "content": null,
+            "tool_calls": [
+              {
+                "id": "call_ef33c90642ef48ddbe0b267f",
+                "type": "function",
+                "function": {
+                  "name": "write_file",
+                  "arguments": "{\"path\": \"config.py\", \"content\": \"DEBUG = True\\n\"}"
+                }
+              }
+            ]
+          },
+          {
+            "role": "tool",
+            "tool_call_id": "call_ef33c90642ef48ddbe0b267f",
+            "content": "Error: the user declined this write"
+          }
+        ],
+        "tools": [
+          {
+            "type": "function",
+            "function": {
+              "name": "read_file",
+              "description": "Read a text file in the working directory and return its contents.",
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "path": {
+                    "type": "string",
+                    "description": "File path, relative to the working directory."
+                  }
+                },
+                "required": [
+                  "path"
+                ],
+                "additionalProperties": false
+              }
+            }
+          },
+          {
+            "type": "function",
+            "function": {
+              "name": "write_file",
+              "description": "Replace the entire contents of a file, creating it if needed. Always send the complete new file, not just the changed part. The user must approve each write.",
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "path": {
+                    "type": "string",
+                    "description": "File path, relative to the working directory."
+                  },
+                  "content": {
+                    "type": "string",
+                    "description": "The complete new contents of the file."
+                  }
+                },
+                "required": [
+                  "path",
+                  "content"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        ]
+      },
+      "response": {
+        "role": "assistant",
+        "content": "The write was declined, so `config.py` still has `DEBUG = False`. Let me know if you'd like a different change."
+      }
+    }
+  ]
+}
