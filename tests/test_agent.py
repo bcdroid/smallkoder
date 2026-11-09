@@ -86,6 +86,29 @@ def test_declined_write_is_reported_to_the_model(root):
     assert messages[3]["content"] == "Error: the user declined this write"
 
 
+def test_system_prompt_names_run_command():
+    assert "run_command" in SYSTEM_PROMPT
+
+
+def test_command_is_approved_then_run(root):
+    asked = []
+    model = ScriptedModel([tool_calls(("run_command", {"command": "echo hi"})), answer("It printed hi.")])
+    messages = new_conversation()
+
+    run_turn(model, messages, "say hi", root, no, approve_command=lambda command: asked.append(command) or True)
+
+    assert asked == ["echo hi"]
+    assert messages[3]["content"] == "Exit code: 0\nhi\n"
+
+
+def test_commands_are_declined_by_default(root):
+    model = ScriptedModel([tool_calls(("run_command", {"command": "touch x"})), answer("OK.")])
+    messages = new_conversation()
+    run_turn(model, messages, "touch x", root, yes)
+    assert messages[3]["content"] == "Error: the user declined this command"
+    assert not (root / "x").exists()
+
+
 def test_on_tool_callback_sees_each_call(root):
     seen = []
     model = ScriptedModel([tool_calls(("read_file", {"path": "x"})), answer("ok")])

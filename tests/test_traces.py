@@ -109,6 +109,19 @@ def test_record_session_runs_prompts_in_a_workspace(tmp_path):
     assert len(trace["exchanges"]) == 4
 
 
+def test_record_session_shares_approvals_between_writes_and_commands(tmp_path):
+    workdir = tmp_path.resolve()
+    model = ScriptedModel([
+        tool_calls(("run_command", {"command": "echo hi"})),
+        tool_calls(("write_file", {"path": "a.txt", "content": "A\n"})),
+        answer("Done."),
+    ])
+    trace = record_session(model, {}, ["go"], [True, False], workdir)
+    assert trace["approvals"] == [True, False]
+    assert trace["files_after"] == {}
+    assert trace["exchanges"][1]["request"]["messages"][-1]["content"] == "Exit code: 0\nhi\n"
+
+
 def test_record_session_records_approvals_actually_used(tmp_path):
     model = ScriptedModel([answer("Nothing to write.")])
     trace = record_session(model, {}, ["hi"], [True, False], tmp_path.resolve())

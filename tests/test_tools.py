@@ -2,7 +2,11 @@
 
 import pytest
 
-from smallkoder.tools import TOOLS, ToolError, read_file, resolve_path, run_tool, write_file
+import os
+import signal
+import time
+
+from smallkoder.tools import TOOLS, ToolError, keep_end, read_file, resolve_path, run_command, run_tool, write_file
 
 
 @pytest.fixture
@@ -137,9 +141,10 @@ def test_write_file_onto_directory(root):
 # --- TOOLS: the JSON schemas sent to the model ---
 
 
-def test_tools_are_exactly_read_and_write():
+def test_tools_are_exactly_read_write_and_run_command():
     names = [tool["function"]["name"] for tool in TOOLS]
-    assert names == ["read_file", "write_file"]
+    # test-guard: the bash tool adds run_command to the tool list on purpose
+    assert names == ["read_file", "write_file", "run_command"]
 
 
 def test_tool_schemas_follow_strict_rules():
@@ -172,7 +177,8 @@ def test_run_tool_reports_tool_errors_as_text(root):
 
 def test_run_tool_unknown_tool(root):
     result = run_tool("delete_file", '{"path": "a.txt"}', root, always(True))
-    assert result == "Error: unknown tool 'delete_file'. Available tools: read_file, write_file"
+    # test-guard: run_command is now one of the available tools
+    assert result == "Error: unknown tool 'delete_file'. Available tools: read_file, write_file, run_command"
 
 
 @pytest.mark.parametrize("arguments", ['{"path": ', "not json", "[1, 2]", '"a.txt"', ""])
@@ -194,3 +200,127 @@ def test_run_tool_wrong_argument_type(root):
 def test_run_tool_unexpected_argument(root):
     result = run_tool("read_file", '{"path": "a.txt", "lines": 10}', root, always(True))
     assert result == "Error: read_file got unexpected arguments 'lines'"
+
+
+# --- run_command: a shell command, approved first ---
+
+
+def allow(answer):
+    """A command approver that records the commands it was asked about."""
+
+    def approve_command(command):
+        approve_command.calls.append(command)
+        return answer
+
+    approve_command.calls = []
+    return approve_command
+
+
+def test_run_command_returns_exit_code_and_output(root):
+    approve = allow(True)
+    assert run_command(root, "echo hello", approve) == "Exit code: 0\nhello\n"
+    assert approve.calls == ["echo hello"]
+
+
+def test_run_command_runs_in_the_working_directory(root):
+    (root / "here.txt").write_text("")
+    assert run_command(root, "ls", allow(True)) == "Exit code: 0\nhere.txt\n"
+
+
+def test_run_command_merges_stderr_and_reports_failure(root):
+    result = run_command(root, "echo out; echo err >&2; exit 3", allow(True))
+    assert result == "Exit code: 3\nout\nerr\n"
+
+
+def test_run_command_uses_bash(root):
+    assert run_command(root, "echo $((6 * 7))", allow(True)) == "Exit code: 0\n42\n"
+
+
+def test_run_command_declined_does_not_run(root):
+    with pytest.raises(ToolError, match="the user declined this command"):
+        run_command(root, "touch made.txt", allow(False))
+    assert not (root / "made.txt").exists()
+
+
+def test_run_command_refuses_empty_command_without_asking(root):
+    approve = allow(True)
+    with pytest.raises(ToolError, match="command is empty"):
+        run_command(root, "   ", approve)
+    assert approve.calls == []
+
+
+def test_run_command_hides_the_api_key(root, monkeypatch):
+    monkeypatch.setenv("OPENCODE_GO", "not-a-real-key")
+    assert run_command(root, 'echo "key=$OPENCODE_GO"', allow(True)) == "Exit code: 0\nkey=\n"
+
+
+def test_run_command_cannot_read_input(root):
+    # stdin is closed, so a command waiting for input gets EOF instead of hanging.
+    assert run_command(root, "cat", allow(True), timeout=5) == "Exit code: 0\n"
+
+
+def test_run_command_times_out_and_keeps_partial_output(root):
+    with pytest.raises(ToolError, match=r"timed out after 0.5 s(.|\n)*started"):
+        run_command(root, "echo started; sleep 30", allow(True), timeout=0.5)
+
+
+def test_run_command_timeout_kills_background_children(root):
+    # A background child keeps the output pipe open. Killing only bash would
+    # leave us waiting for it; the whole process group must go.
+    start = time.monotonic()
+    with pytest.raises(ToolError, match="timed out"):
+        run_command(root, "sleep 30 & echo started", allow(True), timeout=0.5)
+    assert time.monotonic() - start < 5
+
+
+def test_run_command_ctrl_c_kills_the_command(root):
+    """Ctrl-C reaches smallkoder, not the command (it has its own session),
+    so run_command must kill the command before letting the interrupt through."""
+
+    def interrupt(signum, frame):
+        raise KeyboardInterrupt
+
+    old_handler = signal.signal(signal.SIGALRM, interrupt)
+    signal.setitimer(signal.ITIMER_REAL, 0.5)
+    try:
+        with pytest.raises(KeyboardInterrupt):
+            run_command(root, "echo $$ > pgid.txt; sleep 30", allow(True), timeout=10)
+    finally:
+        signal.setitimer(signal.ITIMER_REAL, 0)
+        signal.signal(signal.SIGALRM, old_handler)
+
+    group = int((root / "pgid.txt").read_text())
+    deadline = time.monotonic() + 5
+    while time.monotonic() < deadline:
+        try:
+            os.killpg(group, 0)  # signal 0: only checks whether the group exists
+        except ProcessLookupError:
+            return
+        time.sleep(0.05)
+    pytest.fail("the command's process group was still running after Ctrl-C")
+
+
+def test_keep_end_leaves_short_text_alone():
+    assert keep_end("short", limit=10) == "short"
+
+
+def test_keep_end_keeps_the_end_of_long_text():
+    assert keep_end("abcdefghij", limit=4) == "[... 6 characters cut ...]\nghij"
+
+
+def test_run_command_output_is_limited(root):
+    result = run_command(root, "seq 1 100000", allow(True))
+    assert result.startswith("Exit code: 0\n[... ")
+    assert result.endswith("99999\n100000\n")
+    assert len(result) < 11_000
+
+
+def test_run_tool_run_command(root):
+    result = run_tool("run_command", '{"command": "echo hi"}', root, always(True), approve_command=allow(True))
+    assert result == "Exit code: 0\nhi\n"
+
+
+def test_run_tool_refuses_commands_when_no_approver_is_given(root):
+    result = run_tool("run_command", '{"command": "touch made.txt"}', root, always(True))
+    assert result == "Error: the user declined this command"
+    assert not (root / "made.txt").exists()
