@@ -2,7 +2,7 @@
 
 import pytest
 
-from smallkoder.tools import ToolError, read_file, resolve_path
+from smallkoder.tools import ToolError, read_file, resolve_path, write_file
 
 
 @pytest.fixture
@@ -71,3 +71,64 @@ def test_read_file_not_text(root):
     (root / "image.bin").write_bytes(b"\xff\xfe\x00\x81")
     with pytest.raises(ToolError, match="not a UTF-8 text file"):
         read_file(root, "image.bin")
+
+
+# --- write_file: needs approval ---
+
+
+def always(answer):
+    """An approver that records what it was asked and always answers `answer`."""
+
+    def approve(path, old_text, new_text):
+        approve.calls.append((path, old_text, new_text))
+        return answer
+
+    approve.calls = []
+    return approve
+
+
+def test_write_file_creates_new_file_when_approved(root):
+    approve = always(True)
+    result = write_file(root, "hello.py", "print('hi')\n", approve)
+    assert (root / "hello.py").read_text() == "print('hi')\n"
+    assert result == "Wrote 1 lines to hello.py"
+    assert approve.calls == [("hello.py", None, "print('hi')\n")]  # None: new file
+
+
+def test_write_file_replaces_whole_file(root):
+    (root / "hello.py").write_text("old\ntext\n")
+    approve = always(True)
+    write_file(root, "hello.py", "new\n", approve)
+    assert (root / "hello.py").read_text() == "new\n"
+    assert approve.calls == [("hello.py", "old\ntext\n", "new\n")]
+
+
+def test_write_file_creates_parent_directories(root):
+    write_file(root, "src/pkg/mod.py", "x = 1\n", always(True))
+    assert (root / "src" / "pkg" / "mod.py").read_text() == "x = 1\n"
+
+
+def test_write_file_declined_leaves_file_alone(root):
+    (root / "hello.py").write_text("old\n")
+    with pytest.raises(ToolError, match="user declined"):
+        write_file(root, "hello.py", "new\n", always(False))
+    assert (root / "hello.py").read_text() == "old\n"
+
+
+def test_write_file_outside_root_is_refused_without_asking(root, tmp_path):
+    approve = always(True)
+    with pytest.raises(ToolError, match="outside the working directory"):
+        write_file(root, "../escape.txt", "boo\n", approve)
+    assert not (tmp_path / "escape.txt").exists()
+    assert approve.calls == []
+
+
+def test_write_file_refuses_env(root):
+    with pytest.raises(ToolError, match="secret file"):
+        write_file(root, ".env", "OPENCODE_GO=stolen\n", always(True))
+
+
+def test_write_file_onto_directory(root):
+    (root / "src").mkdir()
+    with pytest.raises(ToolError, match="is a directory"):
+        write_file(root, "src", "x\n", always(True))
