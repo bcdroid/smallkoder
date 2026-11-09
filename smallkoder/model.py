@@ -75,10 +75,9 @@ class OpenCodeModel:
         body = {"model": self.model, "messages": messages, "tools": tools, "max_tokens": self.max_tokens}
         response = self.post(ENDPOINT, headers, body)
         try:
-            message = response["choices"][0]["message"]
+            return clean_reply(response["choices"][0]["message"])
         except (KeyError, IndexError, TypeError):
             raise ModelError(f"unexpected response from the API: {str(response)[:200]}")
-        return clean_reply(message)
 
 
 def clean_reply(message: dict) -> dict:
