@@ -1,0 +1,24 @@
+[project]
+name = "smallkoder"
+version = "0.1.0"
+description = "A small CLI coding assistant, for reading in class"
+requires-python = ">=3.12"
+dependencies = []  # standard library only
+
+[project.optional-dependencies]
+dev = ["pytest>=7"]
+
+[project.scripts]
+smallkoder = "smallkoder.cli:main"
+
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = ["smallkoder"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+markers = ["live: calls the real OpenCode Go API; skipped unless SMALLKODER_LIVE=1"]
