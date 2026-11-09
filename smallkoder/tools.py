@@ -34,3 +34,20 @@ def read_file(root: Path, path: str) -> str:
         raise ToolError(f"file not found: {path}")
     except UnicodeDecodeError:
         raise ToolError(f"'{path}' is not a UTF-8 text file")
+
+
+def write_file(root: Path, path: str, content: str, approve) -> str:
+    """Replace the whole file with content, if the user approves.
+
+    approve(path, old_text, new_text) -> bool asks the user. old_text is
+    None when the file does not exist yet.
+    """
+    target = resolve_path(root, path)  # refuse bad paths before asking
+    if target.is_dir():
+        raise ToolError(f"'{path}' is a directory, not a file")
+    old_text = target.read_text(encoding="utf-8", errors="replace") if target.exists() else None
+    if not approve(path, old_text, content):
+        raise ToolError("the user declined this write")
+    target.parent.mkdir(parents=True, exist_ok=True)
+    target.write_text(content, encoding="utf-8")
+    return f"Wrote {len(content.splitlines())} lines to {path}"
