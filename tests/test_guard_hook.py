@@ -28,6 +28,12 @@ def run_hook(tool_name, tool_input):
     )
 
 
+def assert_blocked(result):
+    # Exit code 2 alone is not enough: Python also exits 2 if the script is missing.
+    assert_blocked(result)
+    assert "# test-guard:" in result.stderr  # the message explains how to override
+
+
 def write(path, content):
     return run_hook("Write", {"file_path": str(path), "content": content})
 
@@ -48,18 +54,18 @@ def test_ignores_files_outside_tests(tmp_path):
 
 def test_blocks_skip_marker(tmp_path):
     result = write(tmp_path / "tests" / "test_x.py", SKIP_MARK + "\ndef test_x():\n    assert False\n")
-    assert result.returncode == 2
+    assert_blocked(result)
     assert "skip" in result.stderr
 
 
 def test_blocks_xfail_marker_in_edit(tmp_path):
     result = edit(tmp_path / "tests" / "test_x.py", "def test_x():", XFAIL_MARK + "\ndef test_x():")
-    assert result.returncode == 2
+    assert_blocked(result)
 
 
 def test_blocks_skip_call(tmp_path):
     result = edit(tmp_path / "tests" / "test_x.py", "    assert x\n", "    " + SKIP_CALL + "\n    assert x\n")
-    assert result.returncode == 2
+    assert_blocked(result)
 
 
 def test_allows_skip_with_reason_comment(tmp_path):
@@ -74,7 +80,7 @@ def test_blocks_edit_that_removes_an_assert(tmp_path):
         "    assert add(2, 2) == 4\n",
         "    add(2, 2)\n",
     )
-    assert result.returncode == 2
+    assert_blocked(result)
     assert "assert add(2, 2) == 4" in result.stderr
 
 
@@ -84,7 +90,7 @@ def test_blocks_edit_that_changes_an_assert(tmp_path):
         "    assert add(2, 2) == 4\n",
         "    assert add(2, 2) in (4, 5)\n",
     )
-    assert result.returncode == 2
+    assert_blocked(result)
 
 
 def test_allows_assert_change_with_reason_comment(tmp_path):
@@ -110,4 +116,4 @@ def test_write_over_existing_file_cannot_drop_asserts(tmp_path):
     existing.parent.mkdir()
     existing.write_text("def test_x():\n    assert add(2, 2) == 4\n")
     result = write(existing, "def test_x():\n    pass\n")
-    assert result.returncode == 2
+    assert_blocked(result)
