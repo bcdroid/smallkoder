@@ -6,7 +6,7 @@ import pytest
 
 from smallkoder.agent import new_conversation, run_turn
 from smallkoder.model import OpenCodeModel
-from smallkoder.traces import RecordingModel, ReplayModel, TraceMismatch
+from smallkoder.traces import RecordingModel, ReplayModel, TraceMismatch, record_session
 from tests.fakes import ScriptedModel, answer, tool_calls
 
 KEY = "oc_sk_test_not_a_real_key"
@@ -88,6 +88,31 @@ def test_replay_returns_copies():
     reply = replay.complete([], [])
     reply["content"] = "mutated"
     assert replay.exchanges[0]["response"] == answer("x")
+
+
+def test_record_session_runs_prompts_in_a_workspace(tmp_path):
+    workdir = tmp_path.resolve()
+    model = ScriptedModel([
+        tool_calls(("read_file", {"path": "a.txt"})),
+        answer("It says A."),
+        tool_calls(("write_file", {"path": "a.txt", "content": "B\n"})),
+        answer("Changed it."),
+    ])
+
+    trace = record_session(model, {"a.txt": "A\n"}, ["read a.txt", "change it to B"], [True], workdir)
+
+    assert trace["files_before"] == {"a.txt": "A\n"}
+    assert trace["prompts"] == ["read a.txt", "change it to B"]
+    assert trace["answers"] == ["It says A.", "Changed it."]
+    assert trace["approvals"] == [True]
+    assert trace["files_after"] == {"a.txt": "B\n"}
+    assert len(trace["exchanges"]) == 4
+
+
+def test_record_session_records_approvals_actually_used(tmp_path):
+    model = ScriptedModel([answer("Nothing to write.")])
+    trace = record_session(model, {}, ["hi"], [True, False], tmp_path.resolve())
+    assert trace["approvals"] == []
 
 
 def test_record_then_replay_a_whole_turn(tmp_path):
