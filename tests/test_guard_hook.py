@@ -30,7 +30,7 @@ def run_hook(tool_name, tool_input):
 
 def assert_blocked(result):
     # Exit code 2 alone is not enough: Python also exits 2 if the script is missing.
-    assert_blocked(result)
+    assert result.returncode == 2
     assert "# test-guard:" in result.stderr  # the message explains how to override
 
 
