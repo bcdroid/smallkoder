@@ -186,6 +186,20 @@ That is deliberate: those changes alter what the model sees.
 
 Each behaviour gets a red commit (`test: ... (red)`) and a green commit (`feat: ... (green)`).
 
+## What changed during implementation
+
+The plan above is kept as written; the code differs in small ways:
+
+- `run_turn(model, messages, user_text, root, approve, max_steps=20, on_tool=None)` takes
+  the user's text and appends it itself, and has an `on_tool(name, raw_json)` callback the
+  CLI uses to show each call.
+- No `--record` flag in the CLI: recording lives in `traces.record_session()`, driven by
+  `scripts/record_traces.py`. The CLI only has `--model`.
+- The CLI is split into `repl()` (testable, with injected `input`/`output`) and a thin
+  `main()`.
+- The guard hook's override marker is `# test-guard: <reason>` for both skips and
+  assertion changes.
+
 ## Out of scope for v0.1
 
 Everything in [backlog.md](backlog.md): editing tools, bash, streaming, history limits,
