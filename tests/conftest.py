@@ -26,6 +26,7 @@ def no_network(request, monkeypatch):
         )
 
     monkeypatch.setattr(socket.socket, "connect", refuse)
+    monkeypatch.setattr(socket, "getaddrinfo", refuse)  # DNS lookups too
 
 
 def pytest_collection_modifyitems(config, items):
