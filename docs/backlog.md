@@ -88,6 +88,16 @@ what it would teach.
   every request and response, but only in tests. *Teaches:* the difference between state
   (enough to continue) and a log (enough to understand what happened); keeping secrets
   out of logs.
+- **Configurable limits, and a spending cap.** The limits exist but are fixed in code.
+  They are 20 model calls per turn (`max_steps`), `max_tokens=4096` per reply, and a
+  120 s request timeout. Expose them as flags (`--max-steps`, `--max-tokens`,
+  `--timeout`) or in a config file. The step limit caps one turn, but nothing caps a
+  session, and each call resends the whole history, so cost grows faster than turns.
+  A session budget would stop once spending passes a set amount, using the
+  `usage` numbers from the cost-display item. Two small test gaps: no test checks
+  that the default step limit is 20, or that the timeout value reaches `urlopen` (the
+  fakes only require that some timeout is passed). *Teaches:* turning magic numbers
+  into settings; budgets as a guardrail; testing defaults, not just behaviour.
 - **Model choice and other providers.** `--model` already picks the model at start-up.
   Still to do: a `/model` command to list models and switch mid-session (the history
   carries over; a new `OpenCodeModel` means a new session id), a default model in a
@@ -139,6 +149,14 @@ These are about the repo and the agent editing it, not smallkoder itself.
   save a trace containing the key it used, and a test checks it when a key is
   available. The default run must stay keyless. *Teaches:* pattern checks vs.
   exact-value checks; checking at the moment of writing, not only afterwards.
+- **Secret scanning for the whole repo, before each commit.** `test_trace_has_no_secrets`
+  covers only `tests/traces/`, the one place our code writes model data. A key pasted
+  into a doc, script or test would not be caught. Run a scanner such as gitleaks (a Go
+  binary) or detect-secrets (Python, `uv add --dev detect-secrets`) from a git
+  pre-commit hook. The pre-commit framework installs with `uv tool install pre-commit`.
+  The same hook could run the test-guard checks on the staged diff (see "Hooks don't see
+  Bash edits"). *Teaches:* scanning at the boundary where secrets leave your machine;
+  why a narrow test plus a broad scanner beats either one alone.
 
 ## Found while building
 
