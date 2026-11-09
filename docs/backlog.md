@@ -64,6 +64,19 @@ what it would teach.
   parse failing. *Teaches:* reading `finish_reason`, defensive handling.
 - **Large files.** `read_file` returns the whole file. Add a size limit, or
   `offset`/`limit` arguments like pi's `read`. *Teaches:* context budgets.
+- **Other secret files.** Only files named exactly `.env` are refused; `.env.local`,
+  `id_rsa`, `credentials.json` are not. A small deny-list (or glob patterns) would be
+  better. *Teaches:* deny-lists are never complete, which is why real tools also sandbox.
+- **Ctrl-C cancels the turn, not the program.** Today Ctrl-C during a model call quits
+  smallkoder. Claude Code cancels the current turn and keeps the conversation.
+  *Teaches:* signal handling and rolling back a half-finished turn.
+- **Large writes and diffs.** The approval prompt prints the whole diff; a rewrite of a
+  1000-line file is unreadable. Page it, or summarise (+12 −3 lines) with an option to
+  see it all. *Teaches:* UX of approval prompts; why edit tools beat whole-file writes.
+- **Hooks don't see Bash edits.** The Claude Code test guard only inspects `Edit` and
+  `Write`. A `PreToolUse` hook on `Bash` that refuses commands touching `tests/`, or a
+  git pre-commit hook running the same checks on the staged diff, would close the gap.
+  *Teaches:* defence in depth; where in the workflow a check belongs.
 - **Symlink race (TOCTOU).** The path check and the write are separate steps, so a
   symlink swapped in between could escape. Fine for teaching; a real tool would open
   with `O_NOFOLLOW` or run in a sandbox. *Teaches:* time-of-check vs time-of-use.
