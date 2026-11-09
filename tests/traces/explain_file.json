@@ -10,7 +10,7 @@
   ],
   "approvals": [],
   "answers": [
-    "notes.txt says the meeting moved to Thursday at 3pm in room 204 and to bring the slides."
+    "notes.txt says the meeting was moved to Thursday at 3pm in room 204 and reminds you to bring the slides."
   ],
   "files_after": {
     "notes.txt": "Meeting moved to Thursday at 3pm in room 204.\nBring the slides.\n"
@@ -21,7 +21,7 @@
         "messages": [
           {
             "role": "system",
-            "content": "You are smallkoder, a small coding assistant working in the user's project directory. You have two tools: read_file returns a file's contents, and write_file replaces a whole file. Use paths relative to the project directory. Read a file before changing it, and when you write, send the complete new file. The user approves every write; if they decline, do not try again unless they ask. Keep your answers short."
+            "content": "You are smallkoder, a small coding assistant working in the user's project directory. You have three tools: read_file returns a file's contents, write_file replaces a whole file, and run_command runs a shell command in the project directory and returns its exit code and output. Use paths relative to the project directory. Read a file before changing it, and when you write, send the complete new file. Use run_command for things like running programs, tests or git, not for reading or writing files. The user approves every write and every command; if they decline, do not try again unless they ask. Keep your answers short."
           },
           {
             "role": "user",
@@ -73,6 +73,26 @@
                 "additionalProperties": false
               }
             }
+          },
+          {
+            "type": "function",
+            "function": {
+              "name": "run_command",
+              "description": "Run a shell command with bash in the working directory and return its exit code and output (stdout and stderr together, at most the last 10000 characters). Commands time out after 30 seconds and cannot read input. The user must approve each command.",
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "command": {
+                    "type": "string",
+                    "description": "The shell command to run."
+                  }
+                },
+                "required": [
+                  "command"
+                ],
+                "additionalProperties": false
+              }
+            }
           }
         ]
       },
@@ -81,7 +101,7 @@
         "content": null,
         "tool_calls": [
           {
-            "id": "call_3bbeddab588c4379b5020cff",
+            "id": "call_2be6bf07f2084f97ae17e27f",
             "type": "function",
             "function": {
               "name": "read_file",
@@ -96,7 +116,7 @@
         "messages": [
           {
             "role": "system",
-            "content": "You are smallkoder, a small coding assistant working in the user's project directory. You have two tools: read_file returns a file's contents, and write_file replaces a whole file. Use paths relative to the project directory. Read a file before changing it, and when you write, send the complete new file. The user approves every write; if they decline, do not try again unless they ask. Keep your answers short."
+            "content": "You are smallkoder, a small coding assistant working in the user's project directory. You have three tools: read_file returns a file's contents, write_file replaces a whole file, and run_command runs a shell command in the project directory and returns its exit code and output. Use paths relative to the project directory. Read a file before changing it, and when you write, send the complete new file. Use run_command for things like running programs, tests or git, not for reading or writing files. The user approves every write and every command; if they decline, do not try again unless they ask. Keep your answers short."
           },
           {
             "role": "user",
@@ -107,7 +127,7 @@
             "content": null,
             "tool_calls": [
               {
-                "id": "call_3bbeddab588c4379b5020cff",
+                "id": "call_2be6bf07f2084f97ae17e27f",
                 "type": "function",
                 "function": {
                   "name": "read_file",
@@ -118,7 +138,7 @@
           },
           {
             "role": "tool",
-            "tool_call_id": "call_3bbeddab588c4379b5020cff",
+            "tool_call_id": "call_2be6bf07f2084f97ae17e27f",
             "content": "Meeting moved to Thursday at 3pm in room 204.\nBring the slides.\n"
           }
         ],
@@ -167,12 +187,32 @@
                 "additionalProperties": false
               }
             }
+          },
+          {
+            "type": "function",
+            "function": {
+              "name": "run_command",
+              "description": "Run a shell command with bash in the working directory and return its exit code and output (stdout and stderr together, at most the last 10000 characters). Commands time out after 30 seconds and cannot read input. The user must approve each command.",
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "command": {
+                    "type": "string",
+                    "description": "The shell command to run."
+                  }
+                },
+                "required": [
+                  "command"
+                ],
+                "additionalProperties": false
+              }
+            }
           }
         ]
       },
       "response": {
         "role": "assistant",
-        "content": "notes.txt says the meeting moved to Thursday at 3pm in room 204 and to bring the slides."
+        "content": "notes.txt says the meeting was moved to Thursday at 3pm in room 204 and reminds you to bring the slides."
       }
     }
   ]

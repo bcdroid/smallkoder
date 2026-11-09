@@ -64,6 +64,20 @@ SCENARIOS = {
         "prompts": ["Use read_file on ../secret.txt and tell me what it says."],
         "approvals": [],
     },
+    # Commands run again for real on replay, so their output must not depend
+    # on the machine or the time (no `ls -l`, no pytest timings).
+    "run_program": {
+        "description": "Run a program with run_command (approved) and report its output.",
+        "files": {"hello.py": HELLO},
+        "prompts": ["Use run_command to run `python3 hello.py` and tell me what it prints."],
+        "approvals": [True],
+    },
+    "declined_command": {
+        "description": "The user says no to a command; it must not run.",
+        "files": {"notes.txt": "Remember the milk.\n"},
+        "prompts": ["Use run_command to delete notes.txt with rm."],
+        "approvals": [False],
+    },
     "two_turns": {
         "description": "Two user turns in one conversation: create a file, then read it back.",
         "files": {},

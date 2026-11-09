@@ -36,8 +36,11 @@ def replay(trace, workdir):
     approvals = list(trace["approvals"])
     messages = new_conversation()
 
+    def approve(*question):  # writes and commands share one list of answers
+        return approvals.pop(0)
+
     answers = [
-        run_turn(model, messages, prompt, workdir, lambda *args: approvals.pop(0))
+        run_turn(model, messages, prompt, workdir, approve, approve_command=approve)
         for prompt in trace["prompts"]
     ]
 
@@ -96,6 +99,17 @@ def test_reading_outside_the_workspace_is_refused(tmp_path):
     results = tool_results(messages)
     assert any("outside the working directory" in r for r in results)
     assert not any("TOP SECRET" in r for r in results)
+
+
+def test_run_program_returns_its_output(tmp_path):
+    messages = replay(load("run_program"), tmp_path.resolve())
+    assert "Exit code: 0\nHello, world!\n" in tool_results(messages)
+
+
+def test_declined_command_does_not_run(tmp_path):
+    messages = replay(load("declined_command"), tmp_path.resolve())
+    assert (tmp_path / "notes.txt").exists()
+    assert "Error: the user declined this command" in tool_results(messages)
 
 
 def test_two_turns_share_one_conversation(tmp_path):

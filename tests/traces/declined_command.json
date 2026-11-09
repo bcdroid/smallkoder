@@ -1,0 +1,221 @@
+{
+  "description": "The user says no to a command; it must not run.",
+  "model": "mimo-v2.6-flash",
+  "recorded": "2026-11-09",
+  "files_before": {
+    "notes.txt": "Remember the milk.\n"
+  },
+  "prompts": [
+    "Use run_command to delete notes.txt with rm."
+  ],
+  "approvals": [
+    false
+  ],
+  "answers": [
+    "The `rm notes.txt` command was declined, so notes.txt remains untouched. Let me know if you'd like a different approach (e.g., move it to trash or use a different path)."
+  ],
+  "files_after": {
+    "notes.txt": "Remember the milk.\n"
+  },
+  "exchanges": [
+    {
+      "request": {
+        "messages": [
+          {
+            "role": "system",
+            "content": "You are smallkoder, a small coding assistant working in the user's project directory. You have three tools: read_file returns a file's contents, write_file replaces a whole file, and run_command runs a shell command in the project directory and returns its exit code and output. Use paths relative to the project directory. Read a file before changing it, and when you write, send the complete new file. Use run_command for things like running programs, tests or git, not for reading or writing files. The user approves every write and every command; if they decline, do not try again unless they ask. Keep your answers short."
+          },
+          {
+            "role": "user",
+            "content": "Use run_command to delete notes.txt with rm."
+          }
+        ],
+        "tools": [
+          {
+            "type": "function",
+            "function": {
+              "name": "read_file",
+              "description": "Read a text file in the working directory and return its contents.",
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "path": {
+                    "type": "string",
+                    "description": "File path, relative to the working directory."
+                  }
+                },
+                "required": [
+                  "path"
+                ],
+                "additionalProperties": false
+              }
+            }
+          },
+          {
+            "type": "function",
+            "function": {
+              "name": "write_file",
+              "description": "Replace the entire contents of a file, creating it if needed. Always send the complete new file, not just the changed part. The user must approve each write.",
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "path": {
+                    "type": "string",
+                    "description": "File path, relative to the working directory."
+                  },
+                  "content": {
+                    "type": "string",
+                    "description": "The complete new contents of the file."
+                  }
+                },
+                "required": [
+                  "path",
+                  "content"
+                ],
+                "additionalProperties": false
+              }
+            }
+          },
+          {
+            "type": "function",
+            "function": {
+              "name": "run_command",
+              "description": "Run a shell command with bash in the working directory and return its exit code and output (stdout and stderr together, at most the last 10000 characters). Commands time out after 30 seconds and cannot read input. The user must approve each command.",
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "command": {
+                    "type": "string",
+                    "description": "The shell command to run."
+                  }
+                },
+                "required": [
+                  "command"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        ]
+      },
+      "response": {
+        "role": "assistant",
+        "content": null,
+        "tool_calls": [
+          {
+            "id": "call_7b0369187a1d4086b9380a24",
+            "type": "function",
+            "function": {
+              "name": "run_command",
+              "arguments": "{\"command\": \"rm notes.txt\"}"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "request": {
+        "messages": [
+          {
+            "role": "system",
+            "content": "You are smallkoder, a small coding assistant working in the user's project directory. You have three tools: read_file returns a file's contents, write_file replaces a whole file, and run_command runs a shell command in the project directory and returns its exit code and output. Use paths relative to the project directory. Read a file before changing it, and when you write, send the complete new file. Use run_command for things like running programs, tests or git, not for reading or writing files. The user approves every write and every command; if they decline, do not try again unless they ask. Keep your answers short."
+          },
+          {
+            "role": "user",
+            "content": "Use run_command to delete notes.txt with rm."
+          },
+          {
+            "role": "assistant",
+            "content": null,
+            "tool_calls": [
+              {
+                "id": "call_7b0369187a1d4086b9380a24",
+                "type": "function",
+                "function": {
+                  "name": "run_command",
+                  "arguments": "{\"command\": \"rm notes.txt\"}"
+                }
+              }
+            ]
+          },
+          {
+            "role": "tool",
+            "tool_call_id": "call_7b0369187a1d4086b9380a24",
+            "content": "Error: the user declined this command"
+          }
+        ],
+        "tools": [
+          {
+            "type": "function",
+            "function": {
+              "name": "read_file",
+              "description": "Read a text file in the working directory and return its contents.",
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "path": {
+                    "type": "string",
+                    "description": "File path, relative to the working directory."
+                  }
+                },
+                "required": [
+                  "path"
+                ],
+                "additionalProperties": false
+              }
+            }
+          },
+          {
+            "type": "function",
+            "function": {
+              "name": "write_file",
+              "description": "Replace the entire contents of a file, creating it if needed. Always send the complete new file, not just the changed part. The user must approve each write.",
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "path": {
+                    "type": "string",
+                    "description": "File path, relative to the working directory."
+                  },
+                  "content": {
+                    "type": "string",
+                    "description": "The complete new contents of the file."
+                  }
+                },
+                "required": [
+                  "path",
+                  "content"
+                ],
+                "additionalProperties": false
+              }
+            }
+          },
+          {
+            "type": "function",
+            "function": {
+              "name": "run_command",
+              "description": "Run a shell command with bash in the working directory and return its exit code and output (stdout and stderr together, at most the last 10000 characters). Commands time out after 30 seconds and cannot read input. The user must approve each command.",
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "command": {
+                    "type": "string",
+                    "description": "The shell command to run."
+                  }
+                },
+                "required": [
+                  "command"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        ]
+      },
+      "response": {
+        "role": "assistant",
+        "content": "The `rm notes.txt` command was declined, so notes.txt remains untouched. Let me know if you'd like a different approach (e.g., move it to trash or use a different path)."
+      }
+    }
+  ]
+}
