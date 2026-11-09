@@ -59,6 +59,47 @@ class ReplayModel:
         return copy.deepcopy(exchange["response"])
 
 
+def snapshot(workdir: Path) -> dict[str, str]:
+    """Every file under workdir, as {relative path: text}."""
+    return {
+        path.relative_to(workdir).as_posix(): path.read_text()
+        for path in sorted(workdir.rglob("*"))
+        if path.is_file()
+    }
+
+
+def record_session(model, files, prompts, approvals, workdir: Path) -> dict:
+    """Run prompts through the agent in workdir and return the whole trace.
+
+    files: {path: text} to create first. approvals: answers for the write
+    prompts, used in order (False once they run out). The trace keeps the
+    answers actually used, so a replay can give the same ones.
+    """
+    from smallkoder.agent import new_conversation, run_turn  # avoids an import cycle
+
+    for name, text in files.items():
+        (workdir / name).parent.mkdir(parents=True, exist_ok=True)
+        (workdir / name).write_text(text)
+
+    remaining, used = list(approvals), []
+
+    def approve(path, old_text, new_text):
+        used.append(remaining.pop(0) if remaining else False)
+        return used[-1]
+
+    recorder = RecordingModel(model)
+    messages = new_conversation()
+    answers = [run_turn(recorder, messages, prompt, workdir, approve) for prompt in prompts]
+    return {
+        "files_before": files,
+        "prompts": prompts,
+        "approvals": used,
+        "answers": answers,
+        "files_after": snapshot(workdir),
+        "exchanges": recorder.exchanges,
+    }
+
+
 def first_difference(recorded, actual):
     for i, (want, got) in enumerate(zip(recorded, actual)):
         if want != got:
