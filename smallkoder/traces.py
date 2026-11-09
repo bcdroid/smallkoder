@@ -48,13 +48,15 @@ class ReplayModel:
     def complete(self, messages, tools):
         if self.finished:
             raise TraceMismatch(f"request {self.position + 1}: the trace has no more recorded responses")
-        recorded = self.exchanges[self.position]["request"]
+        exchange = self.exchanges[self.position]
         self.position += 1
+        recorded = exchange["request"]
         if tools != recorded["tools"]:
             raise TraceMismatch(f"request {self.position} sent different tools than recorded")
         if messages != recorded["messages"]:
-            raise TraceMismatch(f"request {self.position} differs from the trace:\n" + first_difference(recorded["messages"], messages))
-        return copy.deepcopy(self.exchanges[self.position - 1]["response"])
+            difference = first_difference(recorded["messages"], messages)
+            raise TraceMismatch(f"request {self.position} differs from the trace:\n{difference}")
+        return copy.deepcopy(exchange["response"])
 
 
 def first_difference(recorded, actual):
