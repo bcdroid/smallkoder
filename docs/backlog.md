@@ -19,6 +19,17 @@ what it would teach.
 - **Listing and searching files** (`list_files`, `glob`, `grep`). Today the model must
   guess file names. *Teaches:* `pathlib.glob`, ignoring `.git` and `.venv`, limiting
   output size so one call can't flood the context.
+- **A `todo` tool for the model's own task list.** smallkoder does no planning; the
+  model decides each step one reply at a time. A `todo(action, text, id)` tool with
+  `list`, `add`, `toggle` and `clear` lets the model write its plan down and tick
+  items off, and smallkoder prints the list after each change. pi has no built-in todo
+  tool, but it ships this design as an example extension
+  ([`examples/extensions/todo.ts`](https://github.com/earendil-works/pi/blob/77959d667edd855d2f008924296650c888653916/packages/coding-agent/examples/extensions/todo.ts)).
+  pi keeps the list inside the tool results rather than in a separate file, so going
+  back to an earlier point in the conversation gives the right list. For us that would
+  also make saved sessions restore it for free. *Teaches:* that "the agent plans"
+  usually means "the model takes notes through a tool"; tools with state; where to keep
+  that state.
 
 ## The conversation
 
@@ -75,6 +86,17 @@ what it would teach.
   still changes what is sent, so the recorded traces must be re-recorded, and the
   "no `/` in the prompt" test still applies. *Teaches:* package data; that a prompt is
   configuration, but configuration the tests depend on.
+- **Plan mode (`/plan`).** While it's on, the model can read but not write, and it
+  ends with a numbered plan. You approve the plan once, then it carries the plan out
+  with all tools back. Remove `write_file` from the tool list sent to the model, rather
+  than only refusing calls, so the model doesn't keep trying. pi skips plan mode on
+  purpose ("skips features like sub-agents and plan mode") but has an example extension
+  ([`examples/extensions/plan-mode`](https://github.com/earendil-works/pi/blob/77959d667edd855d2f008924296650c888653916/packages/coding-agent/examples/extensions/plan-mode/README.md)).
+  It turns off edit and write, only allows read-only bash commands, picks out the steps
+  under a `Plan:` heading, and tracks `[DONE:n]` markers while the plan runs. Claude Code
+  has plan mode built in. This needs the slash-command item, and pairs with the `todo`
+  tool. *Teaches:* limiting tools by mode; removing a tool vs. refusing it; approving a
+  plan instead of each change.
 - **Non-interactive mode (`-p "prompt"`).** Run one turn and exit, for scripts and CI.
   Needs a policy for approvals (deny all writes, or `--yes`). *Teaches:* argparse, exit
   codes, and that unattended agents need stricter guardrails.
