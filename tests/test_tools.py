@@ -2,7 +2,7 @@
 
 import pytest
 
-from smallkoder.tools import ToolError, read_file, resolve_path, write_file
+from smallkoder.tools import TOOLS, ToolError, read_file, resolve_path, run_tool, write_file
 
 
 @pytest.fixture
@@ -132,3 +132,65 @@ def test_write_file_onto_directory(root):
     (root / "src").mkdir()
     with pytest.raises(ToolError, match="is a directory"):
         write_file(root, "src", "x\n", always(True))
+
+
+# --- TOOLS: the JSON schemas sent to the model ---
+
+
+def test_tools_are_exactly_read_and_write():
+    names = [tool["function"]["name"] for tool in TOOLS]
+    assert names == ["read_file", "write_file"]
+
+
+def test_tool_schemas_follow_strict_rules():
+    for tool in TOOLS:
+        assert tool["type"] == "function"
+        assert tool["function"]["description"]
+        params = tool["function"]["parameters"]
+        assert params["type"] == "object"
+        assert params["additionalProperties"] is False
+        assert sorted(params["required"]) == sorted(params["properties"])
+
+
+# --- run_tool: arguments arrive as a JSON string; errors become text ---
+
+
+def test_run_tool_read(root):
+    (root / "a.txt").write_text("hello\n")
+    assert run_tool("read_file", '{"path": "a.txt"}', root, always(True)) == "hello\n"
+
+
+def test_run_tool_write(root):
+    result = run_tool("write_file", '{"path": "a.txt", "content": "hi\\n"}', root, always(True))
+    assert result == "Wrote 1 lines to a.txt"
+    assert (root / "a.txt").read_text() == "hi\n"
+
+
+def test_run_tool_reports_tool_errors_as_text(root):
+    assert run_tool("read_file", '{"path": "nope.txt"}', root, always(True)) == "Error: file not found: nope.txt"
+
+
+def test_run_tool_unknown_tool(root):
+    result = run_tool("delete_file", '{"path": "a.txt"}', root, always(True))
+    assert result == "Error: unknown tool 'delete_file'. Available tools: read_file, write_file"
+
+
+@pytest.mark.parametrize("arguments", ['{"path": ', "not json", "[1, 2]", '"a.txt"', ""])
+def test_run_tool_arguments_not_a_json_object(root, arguments):
+    result = run_tool("read_file", arguments, root, always(True))
+    assert result.startswith("Error: arguments must be a JSON object")
+
+
+def test_run_tool_missing_argument(root):
+    result = run_tool("write_file", '{"path": "a.txt"}', root, always(True))
+    assert result == "Error: write_file needs string arguments 'path', 'content'"
+
+
+def test_run_tool_wrong_argument_type(root):
+    result = run_tool("read_file", '{"path": 42}', root, always(True))
+    assert result == "Error: read_file needs string arguments 'path'"
+
+
+def test_run_tool_unexpected_argument(root):
+    result = run_tool("read_file", '{"path": "a.txt", "lines": 10}', root, always(True))
+    assert result == "Error: read_file got unexpected arguments 'lines'"
