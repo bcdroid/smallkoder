@@ -24,7 +24,8 @@ Added a docstring to `add` in calc.py.
 
 Background: [docs/research.md](docs/research.md) (how agents like this work, with
 sources), [docs/plan.md](docs/plan.md) (the design), [docs/backlog.md](docs/backlog.md)
-(what to build next), [docs/brief.md](docs/brief.md) (the original assignment).
+(what to build next), [docs/brief.md](docs/brief.md) (the original assignment),
+[docs/session-notes.md](docs/session-notes.md) (report and lessons from the build session).
 
 ## Running it
 
@@ -32,6 +33,7 @@ You need Python 3.12+ and an [OpenCode Go](https://opencode.ai) API key.
 
 ```sh
 echo 'OPENCODE_GO=your-key-here' > .env      # .env is gitignored; never commit it
+python scripts/check_key.py                  # optional: one tiny request to test the key
 python -m smallkoder                         # from this directory
 ```
 

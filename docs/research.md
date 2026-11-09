@@ -175,6 +175,61 @@ From <https://code.claude.com/docs/en/hooks>:
   permission deny rules like `Edit(tests/**)` do not cover subprocesses. These
   guardrails catch mistakes; they are not a security boundary.
 
+## 9. Further details (not needed for v0.1, but worth knowing)
+
+**OpenCode Go models and prices** (<https://opencode.ai/v2/docs/console/go>, 2026-11-09;
+the docs say limits may change; check `https://opencode.ai/inference/go/v1/models` for the
+live list). Cheapest models on the chat completions path, USD per million tokens:
+
+| Model id | Input | Output |
+|---|---|---|
+| `mimo-v2.6-flash` (our default) | $0.14 | $0.28 |
+| `mimo-v2.5` | $0.14 | $0.28 |
+| `hy3` | $0.14 | $0.58 |
+| `glm-5.3-flash` | $0.15 | $0.50 |
+| `minimax-m3.1-flash` | $0.15 | $0.60 |
+| `kimi-k2.7-code` | $0.95 | $4.00 |
+
+- Other models use other paths: `qwen3.7-plus`, `qwen3.8-*`, `claude-haiku-5-5` and
+  `minimax-m3` are on `/anthropic/v1/messages`; `gpt-*`, `grok-4.7` and `muse-spark-*`
+  are on `/openai/v1/responses`. The docs say Console translates between APIs, but we
+  only tested chat completions.
+- Usage limits per model: 20% of the monthly allowance per 5 hours, 50% per week.
+- The "Free" models (e.g. `beam-free`) only work from inside OpenCode itself; other
+  clients get HTTP 403 even with a valid key.
+- The docs show keys starting `oc_sk_`.
+
+**Minimal agents:**
+
+- **mini-swe-agent**: the README says it "doesn't even need to use the tool-calling
+  interface" (a regex pulls a bash block out of plain text), but the current default
+  model class sends `tools=[BASH_TOOL]` and uses native tool calling. The text-based
+  version is now a separate option. Lesson: check the code, not just the README.
+- **"How to Build an Agent"** gives several sizes for the same program ("less than 400
+  lines", ~190 midway, "300 lines" at the end), depending on what is counted.
+- **pi's blog post is partly out of date:** it says validation uses TypeBox + AJV, and
+  that thinking from another model becomes `<thinking>` text. The current code uses its
+  own `pi-schema` package and drops foreign thinking blocks instead.
+
+**Permissions elsewhere:**
+
+- **Codex CLI** has removed the `untrusted` approval policy (older blogs still list it,
+  along with `--full-auto`). The "Auto" preset is
+  `--sandbox workspace-write --ask-for-approval on-request`.
+- **Aider** has `--auto-test` and `--test-cmd` to run tests after each change, the same
+  idea as our PostToolUse hook, but built into the tool (<https://aider.chat/docs/config/options.html>).
+
+**Claude Code hooks, finer points** (<https://code.claude.com/docs/en/hooks>):
+
+- A matcher made only of names and `|` matches exactly; anything else is an unanchored
+  regex, so `Edit.*` also matches `NotebookEdit`. Use `^...$` for exact regexes.
+- Instead of exit code 2, a hook can exit 0 and print JSON. PostToolUse supports
+  `{"decision": "block", "reason": ...}`, and PreToolUse supports
+  `hookSpecificOutput.permissionDecision` (`allow` / `deny` / `ask`). We used exit
+  codes because they are easier to read.
+- Deny rules use gitignore-style paths, and `Edit(...)` rules cover every built-in
+  file-editing tool (write `Edit(docs/**)`, not `Write(docs/**)`).
+
 ## What this means for smallkoder
 
 1. **Use the plain chat completions format** with `urllib`, like nanocode. No SDK, so
