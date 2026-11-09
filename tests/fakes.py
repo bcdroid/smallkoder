@@ -36,7 +36,11 @@ def tool_calls(*calls):
 
 
 class ScriptedModel:
-    """Returns the given replies in order, and remembers every request."""
+    """Returns the given replies in order, and remembers every request.
+
+    A reply that is an exception (e.g. ModelError("HTTP 500")) is raised
+    instead, to simulate API failures.
+    """
 
     def __init__(self, replies):
         self.replies = list(replies)
@@ -46,7 +50,25 @@ class ScriptedModel:
         self.requests.append((copy.deepcopy(messages), tools))
         if not self.replies:
             raise AssertionError("ScriptedModel ran out of replies")
-        return self.replies.pop(0)
+        reply = self.replies.pop(0)
+        if isinstance(reply, Exception):
+            raise reply
+        return reply
+
+
+def scripted_input(*lines):
+    """A stand-in for input(): returns lines in order, then raises EOFError
+    (what input() does when the user presses Ctrl-D). Records the prompts."""
+
+    def fake_input(prompt=""):
+        fake_input.prompts.append(prompt)
+        if fake_input.remaining:
+            return fake_input.remaining.pop(0)
+        raise EOFError
+
+    fake_input.remaining = list(lines)
+    fake_input.prompts = []
+    return fake_input
 
 
 class EndlessToolModel:
