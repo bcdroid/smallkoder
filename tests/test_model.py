@@ -113,6 +113,13 @@ def test_malformed_response_raises_model_error(response):
         OpenCodeModel(KEY, post=FakePost(response)).complete([], [])
 
 
+@pytest.mark.parametrize("bad_call", [{}, {"id": "c1"}, {"id": "c1", "function": {"name": "x"}}])
+def test_malformed_tool_call_in_response_raises_model_error(bad_call):
+    response = {"choices": [{"message": {"role": "assistant", "content": None, "tool_calls": [bad_call]}}]}
+    with pytest.raises(ModelError, match="unexpected response"):
+        OpenCodeModel(KEY, post=FakePost(response)).complete([], [])
+
+
 def test_repr_does_not_show_the_key():
     assert KEY not in repr(OpenCodeModel(KEY, post=FakePost({})))
 
