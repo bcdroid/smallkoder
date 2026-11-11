@@ -1,7 +1,7 @@
 {
   "description": "Two user turns in one conversation: create a file, then read it back.",
   "model": "mimo-v2.6-flash",
-  "recorded": "2026-11-09",
+  "recorded": "2026-11-11",
   "files_before": {},
   "prompts": [
     "Create a file named greeting.txt containing exactly one line: hi there",
@@ -23,7 +23,7 @@
         "messages": [
           {
             "role": "system",
-            "content": "You are smallkoder, a small coding assistant working in the user's project directory. You have two tools: read_file returns a file's contents, and write_file replaces a whole file. Use paths relative to the project directory. Read a file before changing it, and when you write, send the complete new file. The user approves every write; if they decline, do not try again unless they ask. Keep your answers short."
+            "content": "You are smallkoder, a small coding assistant working in the user's project directory. You have three tools: read_file returns a file's contents, edit_file replaces exact text in a file, and write_file replaces a whole file or creates a new one. Use paths relative to the project directory. Read a file before changing it. To change part of a file, use edit_file; use write_file for new files. The user approves every change; if they decline, do not try again unless they ask. Keep your answers short."
           },
           {
             "role": "user",
@@ -75,6 +75,40 @@
                 "additionalProperties": false
               }
             }
+          },
+          {
+            "type": "function",
+            "function": {
+              "name": "edit_file",
+              "description": "Change part of an existing file by replacing old_text with new_text. old_text must match the file exactly, including indentation and line breaks, and must appear exactly once: include enough surrounding lines to make it unique. Set replace_all to true to replace every occurrence instead. The user must approve each edit.",
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "path": {
+                    "type": "string",
+                    "description": "File path, relative to the working directory."
+                  },
+                  "old_text": {
+                    "type": "string",
+                    "description": "The exact text to find in the file."
+                  },
+                  "new_text": {
+                    "type": "string",
+                    "description": "The text to put in its place (may be empty, to delete)."
+                  },
+                  "replace_all": {
+                    "type": "boolean",
+                    "description": "Optional, default false: replace every occurrence of old_text, not just one."
+                  }
+                },
+                "required": [
+                  "path",
+                  "old_text",
+                  "new_text"
+                ],
+                "additionalProperties": false
+              }
+            }
           }
         ]
       },
@@ -83,7 +117,7 @@
         "content": null,
         "tool_calls": [
           {
-            "id": "call_868704c47f7b42fbbf3c03f0",
+            "id": "call_9f363f5a625a448e85e1d3b1",
             "type": "function",
             "function": {
               "name": "write_file",
@@ -98,7 +132,7 @@
         "messages": [
           {
             "role": "system",
-            "content": "You are smallkoder, a small coding assistant working in the user's project directory. You have two tools: read_file returns a file's contents, and write_file replaces a whole file. Use paths relative to the project directory. Read a file before changing it, and when you write, send the complete new file. The user approves every write; if they decline, do not try again unless they ask. Keep your answers short."
+            "content": "You are smallkoder, a small coding assistant working in the user's project directory. You have three tools: read_file returns a file's contents, edit_file replaces exact text in a file, and write_file replaces a whole file or creates a new one. Use paths relative to the project directory. Read a file before changing it. To change part of a file, use edit_file; use write_file for new files. The user approves every change; if they decline, do not try again unless they ask. Keep your answers short."
           },
           {
             "role": "user",
@@ -109,7 +143,7 @@
             "content": null,
             "tool_calls": [
               {
-                "id": "call_868704c47f7b42fbbf3c03f0",
+                "id": "call_9f363f5a625a448e85e1d3b1",
                 "type": "function",
                 "function": {
                   "name": "write_file",
@@ -120,7 +154,7 @@
           },
           {
             "role": "tool",
-            "tool_call_id": "call_868704c47f7b42fbbf3c03f0",
+            "tool_call_id": "call_9f363f5a625a448e85e1d3b1",
             "content": "Wrote 1 lines to greeting.txt"
           }
         ],
@@ -165,6 +199,40 @@
                 "required": [
                   "path",
                   "content"
+                ],
+                "additionalProperties": false
+              }
+            }
+          },
+          {
+            "type": "function",
+            "function": {
+              "name": "edit_file",
+              "description": "Change part of an existing file by replacing old_text with new_text. old_text must match the file exactly, including indentation and line breaks, and must appear exactly once: include enough surrounding lines to make it unique. Set replace_all to true to replace every occurrence instead. The user must approve each edit.",
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "path": {
+                    "type": "string",
+                    "description": "File path, relative to the working directory."
+                  },
+                  "old_text": {
+                    "type": "string",
+                    "description": "The exact text to find in the file."
+                  },
+                  "new_text": {
+                    "type": "string",
+                    "description": "The text to put in its place (may be empty, to delete)."
+                  },
+                  "replace_all": {
+                    "type": "boolean",
+                    "description": "Optional, default false: replace every occurrence of old_text, not just one."
+                  }
+                },
+                "required": [
+                  "path",
+                  "old_text",
+                  "new_text"
                 ],
                 "additionalProperties": false
               }
@@ -182,7 +250,7 @@
         "messages": [
           {
             "role": "system",
-            "content": "You are smallkoder, a small coding assistant working in the user's project directory. You have two tools: read_file returns a file's contents, and write_file replaces a whole file. Use paths relative to the project directory. Read a file before changing it, and when you write, send the complete new file. The user approves every write; if they decline, do not try again unless they ask. Keep your answers short."
+            "content": "You are smallkoder, a small coding assistant working in the user's project directory. You have three tools: read_file returns a file's contents, edit_file replaces exact text in a file, and write_file replaces a whole file or creates a new one. Use paths relative to the project directory. Read a file before changing it. To change part of a file, use edit_file; use write_file for new files. The user approves every change; if they decline, do not try again unless they ask. Keep your answers short."
           },
           {
             "role": "user",
@@ -193,7 +261,7 @@
             "content": null,
             "tool_calls": [
               {
-                "id": "call_868704c47f7b42fbbf3c03f0",
+                "id": "call_9f363f5a625a448e85e1d3b1",
                 "type": "function",
                 "function": {
                   "name": "write_file",
@@ -204,7 +272,7 @@
           },
           {
             "role": "tool",
-            "tool_call_id": "call_868704c47f7b42fbbf3c03f0",
+            "tool_call_id": "call_9f363f5a625a448e85e1d3b1",
             "content": "Wrote 1 lines to greeting.txt"
           },
           {
@@ -261,6 +329,40 @@
                 "additionalProperties": false
               }
             }
+          },
+          {
+            "type": "function",
+            "function": {
+              "name": "edit_file",
+              "description": "Change part of an existing file by replacing old_text with new_text. old_text must match the file exactly, including indentation and line breaks, and must appear exactly once: include enough surrounding lines to make it unique. Set replace_all to true to replace every occurrence instead. The user must approve each edit.",
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "path": {
+                    "type": "string",
+                    "description": "File path, relative to the working directory."
+                  },
+                  "old_text": {
+                    "type": "string",
+                    "description": "The exact text to find in the file."
+                  },
+                  "new_text": {
+                    "type": "string",
+                    "description": "The text to put in its place (may be empty, to delete)."
+                  },
+                  "replace_all": {
+                    "type": "boolean",
+                    "description": "Optional, default false: replace every occurrence of old_text, not just one."
+                  }
+                },
+                "required": [
+                  "path",
+                  "old_text",
+                  "new_text"
+                ],
+                "additionalProperties": false
+              }
+            }
           }
         ]
       },
@@ -269,7 +371,7 @@
         "content": null,
         "tool_calls": [
           {
-            "id": "call_df88a2a3e5e7429ea7ad91a0",
+            "id": "call_4a5576860ce5461f96611fbb",
             "type": "function",
             "function": {
               "name": "read_file",
@@ -284,7 +386,7 @@
         "messages": [
           {
             "role": "system",
-            "content": "You are smallkoder, a small coding assistant working in the user's project directory. You have two tools: read_file returns a file's contents, and write_file replaces a whole file. Use paths relative to the project directory. Read a file before changing it, and when you write, send the complete new file. The user approves every write; if they decline, do not try again unless they ask. Keep your answers short."
+            "content": "You are smallkoder, a small coding assistant working in the user's project directory. You have three tools: read_file returns a file's contents, edit_file replaces exact text in a file, and write_file replaces a whole file or creates a new one. Use paths relative to the project directory. Read a file before changing it. To change part of a file, use edit_file; use write_file for new files. The user approves every change; if they decline, do not try again unless they ask. Keep your answers short."
           },
           {
             "role": "user",
@@ -295,7 +397,7 @@
             "content": null,
             "tool_calls": [
               {
-                "id": "call_868704c47f7b42fbbf3c03f0",
+                "id": "call_9f363f5a625a448e85e1d3b1",
                 "type": "function",
                 "function": {
                   "name": "write_file",
@@ -306,7 +408,7 @@
           },
           {
             "role": "tool",
-            "tool_call_id": "call_868704c47f7b42fbbf3c03f0",
+            "tool_call_id": "call_9f363f5a625a448e85e1d3b1",
             "content": "Wrote 1 lines to greeting.txt"
           },
           {
@@ -322,7 +424,7 @@
             "content": null,
             "tool_calls": [
               {
-                "id": "call_df88a2a3e5e7429ea7ad91a0",
+                "id": "call_4a5576860ce5461f96611fbb",
                 "type": "function",
                 "function": {
                   "name": "read_file",
@@ -333,7 +435,7 @@
           },
           {
             "role": "tool",
-            "tool_call_id": "call_df88a2a3e5e7429ea7ad91a0",
+            "tool_call_id": "call_4a5576860ce5461f96611fbb",
             "content": "hi there\n"
           }
         ],
@@ -378,6 +480,40 @@
                 "required": [
                   "path",
                   "content"
+                ],
+                "additionalProperties": false
+              }
+            }
+          },
+          {
+            "type": "function",
+            "function": {
+              "name": "edit_file",
+              "description": "Change part of an existing file by replacing old_text with new_text. old_text must match the file exactly, including indentation and line breaks, and must appear exactly once: include enough surrounding lines to make it unique. Set replace_all to true to replace every occurrence instead. The user must approve each edit.",
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "path": {
+                    "type": "string",
+                    "description": "File path, relative to the working directory."
+                  },
+                  "old_text": {
+                    "type": "string",
+                    "description": "The exact text to find in the file."
+                  },
+                  "new_text": {
+                    "type": "string",
+                    "description": "The text to put in its place (may be empty, to delete)."
+                  },
+                  "replace_all": {
+                    "type": "boolean",
+                    "description": "Optional, default false: replace every occurrence of old_text, not just one."
+                  }
+                },
+                "required": [
+                  "path",
+                  "old_text",
+                  "new_text"
                 ],
                 "additionalProperties": false
               }

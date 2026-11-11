@@ -1,22 +1,24 @@
 # smallkoder
 
 A small command-line coding assistant, written to be read. It is the same idea as
-Claude Code, pi or Codex, cut down to about 460 lines of plain Python: an
-interactive loop, one model API, and two tools.
+Claude Code, pi or Codex, cut down to about 540 lines of plain Python: an
+interactive loop, one model API, and three tools.
 
 ```
 $ smallkoder
 smallkoder (mimo-v2.6-flash) in /home/me/demo. Type 'exit' or Ctrl-D to quit.
 > Add a docstring to the add function in calc.py
   [read_file] {"path": "calc.py"}
-  [write_file] {"path": "calc.py", "content": "def add(a, b):\n    \"\"\"Ad...
-  The model wants to replace calc.py:
+  [edit_file] {"path": "calc.py", "old_text": "def add(a, b):\n", "new_tex...
+  The model wants to change calc.py:
 --- calc.py
 +++ calc.py
-@@ -1,2 +1,3 @@
+@@ -1,4 +1,5 @@
  def add(a, b):
 +    """Add two numbers and return the sum."""
      return a + b
+ 
+ 
   Allow this write? [y/N] y
 Added a docstring to `add` in calc.py.
 > exit
@@ -24,7 +26,8 @@ Added a docstring to `add` in calc.py.
 
 Background: [docs/research.md](docs/research.md) (how agents like this work, with
 sources), [docs/plan.md](docs/plan.md) (the design), [docs/backlog.md](docs/backlog.md)
-(what to build next), [docs/brief.md](docs/brief.md) (the original assignment),
+(what to build next), [docs/edit-tool-research.md](docs/edit-tool-research.md) (edit
+formats in other agents, and a benchmark on our model), [docs/brief.md](docs/brief.md) (the original assignment),
 [docs/session-notes.md](docs/session-notes.md) (report and lessons from the build session).
 
 ## Running it
@@ -55,7 +58,7 @@ Suggested order:
 
 | File | Lines | What it does |
 |---|---|---|
-| [`smallkoder/tools.py`](smallkoder/tools.py) | 122 | `read_file`, `write_file`, their JSON schemas, path checks, and `run_tool`, which turns every problem into an `Error: ...` string for the model |
+| [`smallkoder/tools.py`](smallkoder/tools.py) | 200 | `read_file`, `write_file`, `edit_file`, their JSON schemas, path checks, and `run_tool`, which turns every problem into an `Error: ...` string for the model |
 | [`smallkoder/agent.py`](smallkoder/agent.py) | 44 | **The agent loop.** Ask the model; if it wants tools, run them, append the results, and ask again; stop when it answers |
 | [`smallkoder/model.py`](smallkoder/model.py) | 107 | The only network code: one HTTP POST to OpenCode Go with `urllib` |
 | [`smallkoder/cli.py`](smallkoder/cli.py) | 77 | The prompt, the diff-and-approve question, Ctrl-D, API-error recovery |
@@ -68,7 +71,7 @@ what lets the tests swap in fakes.
 ## Tests
 
 ```sh
-uv run pytest               # 125 tests, ~0.5 s, no network, no key needed
+uv run pytest               # 159 tests, ~0.5 s, no network, no key needed
 ```
 
 | Kind | Where | What it shows |
@@ -76,7 +79,7 @@ uv run pytest               # 125 tests, ~0.5 s, no network, no key needed
 | Unit tests | `test_tools.py`, `test_model.py` | Each function, including every error path |
 | **Scripted fake model** | `test_agent.py`, `test_cli.py`, [`fakes.py`](tests/fakes.py) | `ScriptedModel([tool_calls(...), answer(...)])` plays the model: "first ask to read hello.py, then answer". Tests the loop with no API |
 | **Fault injection** | `test_agent.py`, `test_cli.py`, `test_model.py` | Fakes that send invalid JSON arguments, unknown tools, missing arguments, endless tool calls, HTTP errors, malformed responses |
-| **Recorded traces, replayed** | `test_recorded_sessions.py`, [`tests/traces/`](tests/traces) | Six real sessions with the real model, saved as JSON. `ReplayModel` serves the recorded replies and fails if our code sends anything different. The loop, tools and files all run for real |
+| **Recorded traces, replayed** | `test_recorded_sessions.py`, [`tests/traces/`](tests/traces) | Eight real sessions with the real model, saved as JSON. `ReplayModel` serves the recorded replies and fails if our code sends anything different. The loop, tools and files all run for real |
 | Live API | `test_live.py` | Opt-in only: `SMALLKODER_LIVE=1 uv run pytest -m live` |
 | The guardrails themselves | `test_guardrails.py`, `test_guard_hook.py` | The network block and the Claude Code hook below |
 
@@ -110,54 +113,60 @@ This project is also a demonstration of guardrails: checks that don't rely on an
    catches `../secret.txt`, `/etc/passwd`, and a symlink pointing outside. The check is
    in code, not in the system prompt: a prompt is a request, code is a guarantee. The
    `outside_workspace` trace shows a real model getting refused.
-2. **Every write needs approval.** `write_file` shows a diff and asks `[y/N]`; anything
-   but `y`/`yes` (including Ctrl-D) means no. A declined write is reported to the model
-   as an error, so it knows. (pi deliberately has no prompts; we keep one because seeing
+2. **Every write needs approval.** `write_file` and `edit_file` show a diff and ask
+   `[y/N]`; anything but `y`/`yes` (including Ctrl-D) means no. A declined write is
+   reported to the model as an error, so it knows. (pi deliberately has no prompts; we keep one because seeing
    and approving each change is the point here.)
 3. **`.env` files are off limits**, so the model can't read our API key and send it to
    the API.
 4. **Bad tool calls never crash the program.** They become `Error: ...` results the
    model can read and fix.
-5. **A step limit** (20 model calls per turn) stops a model that never stops calling tools.
+5. **Edits must say exactly where they go.** `edit_file` replaces `old_text` only if
+   it appears in the file exactly once (or `replace_all` is true). Otherwise it refuses
+   before asking you, and says why: "old_text appears 2 times in calc.py (lines 1, 5).
+   Include more surrounding lines…". An edit can't quietly land in the wrong place, and
+   the error tells the model how to fix its call. Why this design, and the benchmark
+   behind it: [docs/edit-tool-research.md](docs/edit-tool-research.md).
+6. **A step limit** (20 model calls per turn) stops a model that never stops calling tools.
 
 ### In the tests: keeping the suite honest
 
-6. **The default `pytest` run cannot touch the network.** An autouse fixture in
+7. **The default `pytest` run cannot touch the network.** An autouse fixture in
    [`tests/conftest.py`](tests/conftest.py) replaces `socket.connect` and DNS lookups
    with an error, except in tests marked `live`. An accidental real API call fails loudly.
-7. **Secrets never reach traces**, by design (`complete()` never sees the key) and by test.
+8. **Secrets never reach traces**, by design (`complete()` never sees the key) and by test.
 
 ### Around the developer: Claude Code hooks
 
 This repo was built with Claude Code, and [`.claude/settings.json`](.claude/settings.json)
 sets up two hooks that apply to anyone (or any agent) editing it with Claude Code:
 
-8. **pytest runs after every edit.** A `PostToolUse` hook on `Edit|Write`
+9. **pytest runs after every edit.** A `PostToolUse` hook on `Edit|Write`
    ([`run_tests.sh`](.claude/hooks/run_tests.sh)) runs the suite after every file
    change. If it fails, the hook exits with code 2, which sends the failure output back
    to Claude straight away, while it is still looking at the change that caused it.
    (Exit code 1 would only go to a debug log.) In the red step of TDD this is expected
    and useful: it confirms the new test fails for the right reason.
 
-9. **Tests can't be quietly weakened.** A `PreToolUse` hook on `Edit|Write`
-   ([`guard_tests.py`](.claude/hooks/guard_tests.py)) inspects edits to `tests/**/*.py`
-   *before* they happen, and blocks (exit 2) any that:
-   - add a skip or xfail (`pytest.mark.skip`, `pytest.skip()`, `xfail`, `unittest.skip`, ...), or
-   - remove or change an existing `assert` or `pytest.raises` line (comparing old and new text).
+10. **Tests can't be quietly weakened.** A `PreToolUse` hook on `Edit|Write`
+    ([`guard_tests.py`](.claude/hooks/guard_tests.py)) inspects edits to `tests/**/*.py`
+    *before* they happen, and blocks (exit 2) any that:
+    - add a skip or xfail (`pytest.mark.skip`, `pytest.skip()`, `xfail`, `unittest.skip`, ...), or
+    - remove or change an existing `assert` or `pytest.raises` line (comparing old and new text).
 
-   **Why this design.** The tempting failure for an AI (or a tired human) is to make a
-   red test green by loosening the test. A blanket deny rule such as `Edit(tests/**)`
-   would also block writing new tests, which TDD needs constantly. Instead, the hook
-   allows *adding* tests and assertions freely, and changing them only *visibly*: if a
-   line carries a `# test-guard: <reason>` comment, the hook lets it through. The change
-   still happens, but the reason is in the diff for a reviewer, and the convention is
-   to mention it in the commit message too.
+    **Why this design.** The tempting failure for an AI (or a tired human) is to make a
+    red test green by loosening the test. A blanket deny rule such as `Edit(tests/**)`
+    would also block writing new tests, which TDD needs constantly. Instead, the hook
+    allows *adding* tests and assertions freely, and changing them only *visibly*: if a
+    line carries a `# test-guard: <reason>` comment, the hook lets it through. The change
+    still happens, but the reason is in the diff for a reviewer, and the convention is
+    to mention it in the commit message too.
 
-   It fired for real while building this. When the design of `on_tool` changed before
-   its test was ever committed, the guard blocked the assertion change, and the final
-   version carries a `# test-guard:` comment (see `tests/test_agent.py` and
-   `git show 37dfab7`). It is itself tested, by running it as a
-   subprocess with the same JSON Claude Code sends.
+    It fired for real while building this. When the design of `on_tool` changed before
+    its test was ever committed, the guard blocked the assertion change, and the final
+    version carries a `# test-guard:` comment (see `tests/test_agent.py` and
+    `git show 37dfab7`). It is itself tested, by running it as a
+    subprocess with the same JSON Claude Code sends.
 
 **Limits, honestly.** These hooks catch mistakes; they are not a security boundary.
 Changes made through the shell (`sed`, `python -c`, `rm tests/...`) do not trigger

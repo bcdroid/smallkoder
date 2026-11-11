@@ -1,7 +1,7 @@
 {
   "description": "Read a file, then rewrite it with a docstring (write approved).",
   "model": "mimo-v2.6-flash",
-  "recorded": "2026-11-09",
+  "recorded": "2026-11-11",
   "files_before": {
     "hello.py": "def greet(name):\n    return f\"Hello, {name}!\"\n\n\nif __name__ == \"__main__\":\n    print(greet(\"world\"))\n"
   },
@@ -12,7 +12,7 @@
     true
   ],
   "answers": [
-    "Added a docstring to `greet`:\n\n```python\ndef greet(name):\n    \"\"\"Return a friendly greeting for the given name.\"\"\"\n    return f\"Hello, {name}!\"\n```"
+    "Added a docstring to `greet` in `hello.py`."
   ],
   "files_after": {
     "hello.py": "def greet(name):\n    \"\"\"Return a friendly greeting for the given name.\"\"\"\n    return f\"Hello, {name}!\"\n\n\nif __name__ == \"__main__\":\n    print(greet(\"world\"))\n"
@@ -23,7 +23,7 @@
         "messages": [
           {
             "role": "system",
-            "content": "You are smallkoder, a small coding assistant working in the user's project directory. You have two tools: read_file returns a file's contents, and write_file replaces a whole file. Use paths relative to the project directory. Read a file before changing it, and when you write, send the complete new file. The user approves every write; if they decline, do not try again unless they ask. Keep your answers short."
+            "content": "You are smallkoder, a small coding assistant working in the user's project directory. You have three tools: read_file returns a file's contents, edit_file replaces exact text in a file, and write_file replaces a whole file or creates a new one. Use paths relative to the project directory. Read a file before changing it. To change part of a file, use edit_file; use write_file for new files. The user approves every change; if they decline, do not try again unless they ask. Keep your answers short."
           },
           {
             "role": "user",
@@ -75,6 +75,40 @@
                 "additionalProperties": false
               }
             }
+          },
+          {
+            "type": "function",
+            "function": {
+              "name": "edit_file",
+              "description": "Change part of an existing file by replacing old_text with new_text. old_text must match the file exactly, including indentation and line breaks, and must appear exactly once: include enough surrounding lines to make it unique. Set replace_all to true to replace every occurrence instead. The user must approve each edit.",
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "path": {
+                    "type": "string",
+                    "description": "File path, relative to the working directory."
+                  },
+                  "old_text": {
+                    "type": "string",
+                    "description": "The exact text to find in the file."
+                  },
+                  "new_text": {
+                    "type": "string",
+                    "description": "The text to put in its place (may be empty, to delete)."
+                  },
+                  "replace_all": {
+                    "type": "boolean",
+                    "description": "Optional, default false: replace every occurrence of old_text, not just one."
+                  }
+                },
+                "required": [
+                  "path",
+                  "old_text",
+                  "new_text"
+                ],
+                "additionalProperties": false
+              }
+            }
           }
         ]
       },
@@ -83,7 +117,7 @@
         "content": null,
         "tool_calls": [
           {
-            "id": "call_095f457524b349fd81e437c8",
+            "id": "call_d0625b16cd2d4312ba811ee7",
             "type": "function",
             "function": {
               "name": "read_file",
@@ -98,7 +132,7 @@
         "messages": [
           {
             "role": "system",
-            "content": "You are smallkoder, a small coding assistant working in the user's project directory. You have two tools: read_file returns a file's contents, and write_file replaces a whole file. Use paths relative to the project directory. Read a file before changing it, and when you write, send the complete new file. The user approves every write; if they decline, do not try again unless they ask. Keep your answers short."
+            "content": "You are smallkoder, a small coding assistant working in the user's project directory. You have three tools: read_file returns a file's contents, edit_file replaces exact text in a file, and write_file replaces a whole file or creates a new one. Use paths relative to the project directory. Read a file before changing it. To change part of a file, use edit_file; use write_file for new files. The user approves every change; if they decline, do not try again unless they ask. Keep your answers short."
           },
           {
             "role": "user",
@@ -109,7 +143,7 @@
             "content": null,
             "tool_calls": [
               {
-                "id": "call_095f457524b349fd81e437c8",
+                "id": "call_d0625b16cd2d4312ba811ee7",
                 "type": "function",
                 "function": {
                   "name": "read_file",
@@ -120,7 +154,7 @@
           },
           {
             "role": "tool",
-            "tool_call_id": "call_095f457524b349fd81e437c8",
+            "tool_call_id": "call_d0625b16cd2d4312ba811ee7",
             "content": "def greet(name):\n    return f\"Hello, {name}!\"\n\n\nif __name__ == \"__main__\":\n    print(greet(\"world\"))\n"
           }
         ],
@@ -165,6 +199,40 @@
                 "required": [
                   "path",
                   "content"
+                ],
+                "additionalProperties": false
+              }
+            }
+          },
+          {
+            "type": "function",
+            "function": {
+              "name": "edit_file",
+              "description": "Change part of an existing file by replacing old_text with new_text. old_text must match the file exactly, including indentation and line breaks, and must appear exactly once: include enough surrounding lines to make it unique. Set replace_all to true to replace every occurrence instead. The user must approve each edit.",
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "path": {
+                    "type": "string",
+                    "description": "File path, relative to the working directory."
+                  },
+                  "old_text": {
+                    "type": "string",
+                    "description": "The exact text to find in the file."
+                  },
+                  "new_text": {
+                    "type": "string",
+                    "description": "The text to put in its place (may be empty, to delete)."
+                  },
+                  "replace_all": {
+                    "type": "boolean",
+                    "description": "Optional, default false: replace every occurrence of old_text, not just one."
+                  }
+                },
+                "required": [
+                  "path",
+                  "old_text",
+                  "new_text"
                 ],
                 "additionalProperties": false
               }
@@ -177,11 +245,11 @@
         "content": null,
         "tool_calls": [
           {
-            "id": "call_5bb46935abc649658a8458b5",
+            "id": "call_18e8843b7fe241929f2ae316",
             "type": "function",
             "function": {
-              "name": "write_file",
-              "arguments": "{\"path\": \"hello.py\", \"content\": \"def greet(name):\\n    \\\"\\\"\\\"Return a friendly greeting for the given name.\\\"\\\"\\\"\\n    return f\\\"Hello, {name}!\\\"\\n\\n\\nif __name__ == \\\"__main__\\\":\\n    print(greet(\\\"world\\\"))\\n\"}"
+              "name": "edit_file",
+              "arguments": "{\"path\": \"hello.py\", \"old_text\": \"def greet(name):\\n    return f\\\"Hello, {name}!\\\"\", \"new_text\": \"def greet(name):\\n    \\\"\\\"\\\"Return a friendly greeting for the given name.\\\"\\\"\\\"\\n    return f\\\"Hello, {name}!\\\"\"}"
             }
           }
         ]
@@ -192,7 +260,7 @@
         "messages": [
           {
             "role": "system",
-            "content": "You are smallkoder, a small coding assistant working in the user's project directory. You have two tools: read_file returns a file's contents, and write_file replaces a whole file. Use paths relative to the project directory. Read a file before changing it, and when you write, send the complete new file. The user approves every write; if they decline, do not try again unless they ask. Keep your answers short."
+            "content": "You are smallkoder, a small coding assistant working in the user's project directory. You have three tools: read_file returns a file's contents, edit_file replaces exact text in a file, and write_file replaces a whole file or creates a new one. Use paths relative to the project directory. Read a file before changing it. To change part of a file, use edit_file; use write_file for new files. The user approves every change; if they decline, do not try again unless they ask. Keep your answers short."
           },
           {
             "role": "user",
@@ -203,7 +271,7 @@
             "content": null,
             "tool_calls": [
               {
-                "id": "call_095f457524b349fd81e437c8",
+                "id": "call_d0625b16cd2d4312ba811ee7",
                 "type": "function",
                 "function": {
                   "name": "read_file",
@@ -214,7 +282,7 @@
           },
           {
             "role": "tool",
-            "tool_call_id": "call_095f457524b349fd81e437c8",
+            "tool_call_id": "call_d0625b16cd2d4312ba811ee7",
             "content": "def greet(name):\n    return f\"Hello, {name}!\"\n\n\nif __name__ == \"__main__\":\n    print(greet(\"world\"))\n"
           },
           {
@@ -222,19 +290,19 @@
             "content": null,
             "tool_calls": [
               {
-                "id": "call_5bb46935abc649658a8458b5",
+                "id": "call_18e8843b7fe241929f2ae316",
                 "type": "function",
                 "function": {
-                  "name": "write_file",
-                  "arguments": "{\"path\": \"hello.py\", \"content\": \"def greet(name):\\n    \\\"\\\"\\\"Return a friendly greeting for the given name.\\\"\\\"\\\"\\n    return f\\\"Hello, {name}!\\\"\\n\\n\\nif __name__ == \\\"__main__\\\":\\n    print(greet(\\\"world\\\"))\\n\"}"
+                  "name": "edit_file",
+                  "arguments": "{\"path\": \"hello.py\", \"old_text\": \"def greet(name):\\n    return f\\\"Hello, {name}!\\\"\", \"new_text\": \"def greet(name):\\n    \\\"\\\"\\\"Return a friendly greeting for the given name.\\\"\\\"\\\"\\n    return f\\\"Hello, {name}!\\\"\"}"
                 }
               }
             ]
           },
           {
             "role": "tool",
-            "tool_call_id": "call_5bb46935abc649658a8458b5",
-            "content": "Wrote 7 lines to hello.py"
+            "tool_call_id": "call_18e8843b7fe241929f2ae316",
+            "content": "Edited hello.py: replaced 1 occurrence"
           }
         ],
         "tools": [
@@ -282,12 +350,46 @@
                 "additionalProperties": false
               }
             }
+          },
+          {
+            "type": "function",
+            "function": {
+              "name": "edit_file",
+              "description": "Change part of an existing file by replacing old_text with new_text. old_text must match the file exactly, including indentation and line breaks, and must appear exactly once: include enough surrounding lines to make it unique. Set replace_all to true to replace every occurrence instead. The user must approve each edit.",
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "path": {
+                    "type": "string",
+                    "description": "File path, relative to the working directory."
+                  },
+                  "old_text": {
+                    "type": "string",
+                    "description": "The exact text to find in the file."
+                  },
+                  "new_text": {
+                    "type": "string",
+                    "description": "The text to put in its place (may be empty, to delete)."
+                  },
+                  "replace_all": {
+                    "type": "boolean",
+                    "description": "Optional, default false: replace every occurrence of old_text, not just one."
+                  }
+                },
+                "required": [
+                  "path",
+                  "old_text",
+                  "new_text"
+                ],
+                "additionalProperties": false
+              }
+            }
           }
         ]
       },
       "response": {
         "role": "assistant",
-        "content": "Added a docstring to `greet`:\n\n```python\ndef greet(name):\n    \"\"\"Return a friendly greeting for the given name.\"\"\"\n    return f\"Hello, {name}!\"\n```"
+        "content": "Added a docstring to `greet` in `hello.py`."
       }
     }
   ]

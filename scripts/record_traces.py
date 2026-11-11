@@ -33,7 +33,84 @@ if __name__ == "__main__":
     print(greet("world"))
 '''
 
+CALC = '''def add(a, b):
+    return a + b
+
+
+def sub(a, b):
+    return a - b
+'''
+
+# Big enough that the rename touches only a few lines, so editing beats rewriting.
+SHAPES = '''"""Areas and perimeters of simple shapes."""
+
+import math
+
+
+def circle_area(radius):
+    return math.pi * radius * radius
+
+
+def circle_perimeter(radius):
+    return 2 * math.pi * radius
+
+
+def rectangle_area(width, height):
+    return width * height
+
+
+def rectangle_perimeter(width, height):
+    return 2 * (width + height)
+
+
+def triangle_area(base, height):
+    return base * height / 2
+
+
+def square_area(size):
+    return size * size
+
+
+def square_perimeter(size):
+    return 4 * size
+
+
+def describe(size):
+    return f"A square of size {size} has area {square_area(size)}."
+
+
+def largest(areas):
+    """Return the name of the shape with the largest area."""
+    return max(areas, key=areas.get)
+
+
+def total_area(areas):
+    return sum(areas.values())
+
+
+def scale(area, factor):
+    return area * factor * factor
+
+
+def summary(areas):
+    lines = [f"{name}: {area:.2f}" for name, area in sorted(areas.items())]
+    lines.append(f"total: {total_area(areas):.2f}")
+    return "\\n".join(lines)
+'''
+
 SCENARIOS = {
+    "edit_function": {
+        "description": "Change one of two similar functions with edit_file (edit approved).",
+        "files": {"calc.py": CALC},
+        "prompts": ["In calc.py, make sub return the absolute difference of a and b."],
+        "approvals": [True],
+    },
+    "rename_everywhere": {
+        "description": "Rename a name that appears many times, with edit_file (edits approved).",
+        "files": {"shapes.py": SHAPES},
+        "prompts": ["In shapes.py, rename the parameter size to side everywhere."],
+        "approvals": [True, True, True, True, True, True],
+    },
     "add_docstring": {
         "description": "Read a file, then rewrite it with a docstring (write approved).",
         "files": {"hello.py": HELLO},

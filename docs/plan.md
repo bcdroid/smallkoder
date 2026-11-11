@@ -202,6 +202,22 @@ The plan above is kept as written; the code differs in small ways:
 - After v0.1 (2026-11-09): the "standard library only" rule was dropped, and uv now
   does all package management (`uv sync`, `uv add`, `uv run`; `uv.lock` committed).
   pytest moved to a `dev` dependency group, and the test hook runs `uv run pytest`.
+- After v0.1 (2026-11-09): a third tool, `edit_file(path, old_text, new_text,
+  replace_all)`, from the backlog. Research and benchmark:
+  [edit-tool-research.md](edit-tool-research.md).
+  - `old_text` must match exactly, and only once unless `replace_all` is true. The
+    parameter names follow pi; pi's own spelling is camelCase (`oldText`).
+  - `replace_all` is an *optional* boolean that defaults to false. That breaks the plan's
+    strict-mode rule (every field required), on purpose. With it required, MiMo left it
+    out of 2 of its 3 recorded edits and had to retry; Claude Code, OpenCode and nanocode
+    also make it optional. Strings are still all required. `tool_schema()` gained a
+    `flags` argument for these optional booleans, and `parse_arguments` fills in the
+    default and checks each argument's type from the schema.
+  - A declined edit returns the same "the user declined this write" error as a declined
+    write.
+  - The approval prompt now says "wants to change" instead of "wants to replace".
+  - The system prompt names three tools, so every trace was re-recorded, and two
+    scenarios were added: `edit_function` and `rename_everywhere`.
 
 ## Out of scope for v0.1
 

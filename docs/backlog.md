@@ -6,12 +6,22 @@ what it would teach.
 
 ## Tools
 
-- **File editing tool (search/replace or apply a patch).** `write_file` resends the whole
-  file, which is slow and expensive for big files, and models make mistakes copying long
-  text. An `edit_file(path, old, new)` that requires `old` to appear exactly once is what
-  pi, Claude Code and "How to Build an Agent" use. *Teaches:* designing a tool that is
-  hard to misuse, and useful error messages ("old text found 3 times") that let the
-  model fix its own call.
+- **Edit tool follow-ups.** `edit_file` (exact replace) is done; the research and
+  benchmark behind it are in [edit-tool-research.md](edit-tool-research.md). Next steps,
+  each with its own lesson:
+  - *Looser matching.* When the exact match fails, retry ignoring trailing whitespace
+    and Unicode quotes and dashes, as pi, Codex and OpenCode do. Today this is only a
+    hint in the error message. *Teaches:* forgiving input without guessing; OpenCode
+    went from a 9-step fallback chain back to 3.
+  - *Several edits in one call* (`edits: [...]`, as pi has). On MiMo it isn't needed
+    for accuracy, since the model sends parallel calls instead. But each parallel call
+    asks for its own approval, so a 6-place rename means 6 prompts. One call would mean
+    one diff to approve. *Teaches:* nested JSON Schema (arrays of objects) and
+    validating it; all-or-nothing changes.
+  - *`apply_patch` for GPT models.* OpenAI trained GPT on this format, and OpenCode
+    gives it to GPT models only. It only pays off after a Responses API adapter, since
+    OpenCode Go serves GPT only on `/openai/v1/responses`. *Teaches:* choosing tools
+    per model; parsing a small grammar.
 - **Bash / run-command tool with a permission prompt.** The single most powerful tool:
   run tests, git, linters. mini-swe-agent shows bash alone is enough. *Teaches:*
   `subprocess`, timeouts, output truncation, and why command approval is harder than
@@ -194,12 +204,19 @@ These are about the repo and the agent editing it, not smallkoder itself.
   smallkoder. Claude Code cancels the current turn and keeps the conversation.
   *Teaches:* signal handling and rolling back a half-finished turn.
 - **Large writes and diffs.** The approval prompt prints the whole diff; a rewrite of a
-  1000-line file is unreadable. Page it, or summarise (+12 −3 lines) with an option to
+  1000-line file is unreadable. `edit_file` helps (its diff is just the change), but
+  `write_file` still rewrites whole files. Page it, or summarise (+12 −3 lines) with an option to
   see it all. *Teaches:* UX of approval prompts; why edit tools beat whole-file writes.
 - **Hooks don't see Bash edits.** The Claude Code test guard only inspects `Edit` and
   `Write`. A `PreToolUse` hook on `Bash` that refuses commands touching `tests/`, or a
   git pre-commit hook running the same checks on the staged diff, would close the gap.
   *Teaches:* defence in depth; where in the workflow a check belongs.
+- **Line endings.** `read_text()` turns `\r\n` into `\n`, and `write_text()` writes `\n`.
+  So `write_file` and `edit_file` silently convert a Windows (CRLF) file to LF, and a
+  one-line edit becomes a whole-file change in git. Found while testing `edit_file`.
+  Fix: open with `newline=""`, remember the file's line ending, and restore it on write.
+  *Teaches:* Python's universal newlines; why tools that edit files (pi, Codex) normalise
+  and then restore.
 - **Symlink race (TOCTOU).** The path check and the write are separate steps, so a
   symlink swapped in between could escape. Fine for teaching; a real tool would open
   with `O_NOFOLLOW` or run in a sandbox. *Teaches:* time-of-check vs time-of-use.

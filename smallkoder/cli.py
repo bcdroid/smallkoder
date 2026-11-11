@@ -29,7 +29,7 @@ def repl(model, root: Path, input=input, output=print):
     """Chat until the user types exit/quit or presses Ctrl-D / Ctrl-C."""
 
     def approve(path, old_text, new_text):
-        output(f"  The model wants to {'create' if old_text is None else 'replace'} {path}:")
+        output(f"  The model wants to {'create' if old_text is None else 'change'} {path}:")
         output(make_diff(path, old_text, new_text).rstrip("\n"))
         try:
             reply = input("  Allow this write? [y/N] ")
