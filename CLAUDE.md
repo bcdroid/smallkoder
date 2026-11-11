@@ -23,3 +23,20 @@ how it works, and its Guardrails section for the hooks that run on your edits.
 - Add new ideas to [docs/backlog.md](docs/backlog.md) as they come up. Keep the
   `docs/plan.md` text as written, and record departures from it under "What changed
   during implementation".
+
+## Specs and ADRs for every feature
+
+Use this approach for all new features (see [docs/adr/0001](docs/adr/0001-record-architecture-decisions.md)):
+
+1. **Spec first.** Before any code, write `docs/specs/<feature>.md`: goal, non-goals,
+   interface, behaviour, errors, guardrails, tests, known gaps.
+   [docs/specs/run-command.md](docs/specs/run-command.md) is the model to follow.
+2. **An ADR for each decision with real alternatives.** Write
+   `docs/adr/NNNN-<slug>.md` from the template in [docs/adr/README.md](docs/adr/README.md),
+   and add it to that index. If the decision is the user's to make (guardrails,
+   spending money, approval policy), ask first, then record their answer in the ADR.
+3. **Commit the spec and ADRs before or with the red tests.** If implementation
+   changes the design, update the spec in the same commit. Never edit an accepted
+   ADR to change a decision: write a new ADR that supersedes it.
+4. Small fixes and refactors don't need a spec. Add an ADR only if they make a real
+   design choice.

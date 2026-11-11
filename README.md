@@ -25,7 +25,9 @@ Added a docstring to `add` in calc.py.
 Background: [docs/research.md](docs/research.md) (how agents like this work, with
 sources), [docs/plan.md](docs/plan.md) (the design), [docs/backlog.md](docs/backlog.md)
 (what to build next), [docs/brief.md](docs/brief.md) (the original assignment),
-[docs/session-notes.md](docs/session-notes.md) (report and lessons from the build session).
+[docs/session-notes.md](docs/session-notes.md) (report and lessons from the build session),
+[docs/specs/](docs/specs) (one spec per feature added since v0.1) and
+[docs/adr/](docs/adr) (the decisions behind them, and the alternatives rejected).
 
 ## Running it
 
