@@ -29,6 +29,20 @@ def test_system_prompt_names_the_tools_and_no_absolute_paths():
     assert "/" not in SYSTEM_PROMPT  # keeps recorded traces portable
 
 
+def test_system_prompt_mentions_edit_file():
+    assert "edit_file" in SYSTEM_PROMPT
+
+
+def test_edit_file_round_trip(root):
+    (root / "calc.py").write_text("x = 1\ny = 2\n")
+    edit = {"path": "calc.py", "old_text": "y = 2", "new_text": "y = 3", "replace_all": False}
+    model = ScriptedModel([tool_calls(("edit_file", edit)), answer("Changed y.")])
+    messages = new_conversation()
+    assert run_turn(model, messages, "set y to 3", root, yes) == "Changed y."
+    assert (root / "calc.py").read_text() == "x = 1\ny = 3\n"
+    assert messages[3]["content"] == "Edited calc.py: replaced 1 occurrence"
+
+
 def test_plain_answer_ends_the_turn(root):
     model = ScriptedModel([answer("Hello!")])
     messages = new_conversation()

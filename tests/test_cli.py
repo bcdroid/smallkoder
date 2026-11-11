@@ -67,6 +67,22 @@ def test_write_shows_diff_and_asks(root):
     assert (root / "hello.py").read_text() == new
 
 
+def test_edit_shows_only_the_change_and_asks(root):
+    (root / "calc.py").write_text("x = 1\ny = 2\nz = 3\n")
+    edit = {"path": "calc.py", "old_text": "y = 2", "new_text": "y = 20", "replace_all": False}
+    model = ScriptedModel([tool_calls(("edit_file", edit)), answer("Done.")])
+    fake_input = scripted_input("set y to 20", "y")
+    output = []
+
+    repl(model, root, input=fake_input, output=output.append)
+
+    printed = "\n".join(output)
+    assert "The model wants to change calc.py:" in printed
+    assert "-y = 2\n+y = 20" in printed
+    assert "Allow this write? [y/N]" in fake_input.prompts[1]
+    assert (root / "calc.py").read_text() == "x = 1\ny = 20\nz = 3\n"
+
+
 @pytest.mark.parametrize("reply", ["n", "", "maybe", "no"])
 def test_anything_but_yes_declines(root, reply):
     model = ScriptedModel([tool_calls(("write_file", {"path": "a.py", "content": "x\n"})), answer("ok")])

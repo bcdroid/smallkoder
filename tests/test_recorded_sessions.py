@@ -102,3 +102,27 @@ def test_two_turns_share_one_conversation(tmp_path):
     messages = replay(load("two_turns"), tmp_path.resolve())
     assert [m["content"] for m in messages if m["role"] == "user"] == load("two_turns")["prompts"]
     assert (tmp_path / "greeting.txt").read_text().strip() == "hi there"
+
+
+def tools_called(messages):
+    return [call["function"]["name"] for m in messages for call in m.get("tool_calls") or []]
+
+
+def test_edit_function_changes_only_sub(tmp_path):
+    messages = replay(load("edit_function"), tmp_path.resolve())
+    assert "edit_file" in tools_called(messages)
+    assert "write_file" not in tools_called(messages)
+    namespace = {}
+    exec((tmp_path / "calc.py").read_text(), namespace)
+    assert namespace["sub"](2, 5) == 3 and namespace["sub"](5, 2) == 3
+    assert namespace["add"](2, 5) == 7
+
+
+def test_rename_everywhere_uses_edit_file(tmp_path):
+    messages = replay(load("rename_everywhere"), tmp_path.resolve())
+    assert "edit_file" in tools_called(messages)
+    shapes = (tmp_path / "shapes.py").read_text()
+    assert "size" not in shapes.replace("of size", "")  # the f-string's wording may stay
+    namespace = {}
+    exec(shapes, namespace)
+    assert namespace["square_area"](side=3) == 9 and namespace["square_perimeter"](side=3) == 12
