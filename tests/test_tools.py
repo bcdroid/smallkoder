@@ -254,6 +254,20 @@ def test_run_command_hides_the_api_key(root, monkeypatch):
     assert run_command(root, 'echo "key=$OPENCODE_GO"', allow(True)) == "Exit code: 0\nkey=\n"
 
 
+def test_run_command_without_bash_is_a_tool_error(root, tmp_path, monkeypatch):
+    empty = tmp_path / "empty-bin"
+    empty.mkdir()
+    monkeypatch.setenv("PATH", str(empty))  # Popen looks bash up on this PATH
+    with pytest.raises(ToolError, match="could not start bash: .*No such file or directory: 'bash'"):
+        run_command(root, "echo hi", allow(True))
+
+
+def test_run_tool_without_bash_reports_an_error(root, tmp_path, monkeypatch):
+    monkeypatch.setenv("PATH", str(tmp_path / "nowhere"))
+    result = run_tool("run_command", '{"command": "echo hi"}', root, always(True), approve_command=allow(True))
+    assert result.startswith("Error: could not start bash: ")
+
+
 def test_run_command_cannot_read_input(root):
     # stdin is closed, so a command waiting for input gets EOF instead of hanging.
     assert run_command(root, "cat", allow(True), timeout=5) == "Exit code: 0\n"
