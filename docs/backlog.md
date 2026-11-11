@@ -22,10 +22,20 @@ what it would teach.
     gives it to GPT models only. It only pays off after a Responses API adapter, since
     OpenCode Go serves GPT only on `/openai/v1/responses`. *Teaches:* choosing tools
     per model; parsing a small grammar.
-- **Bash / run-command tool with a permission prompt.** The single most powerful tool:
-  run tests, git, linters. mini-swe-agent shows bash alone is enough. *Teaches:*
-  `subprocess`, timeouts, output truncation, and why command approval is harder than
-  file approval (`rm -rf` hidden inside a script; allow-lists vs deny-lists).
+- **Fewer command prompts.** `run_command` (done) asks about every command, so `ls`,
+  `git status` and re-running the tests get tiring. Two options: an "always" answer
+  (`[y/N/a]`) that approves that exact command for the session, or an allow-list of
+  read-only commands. The allow-list is harder than it looks: `ls; rm -rf x`,
+  `cat $(curl ...)`, `git -c core.pager=... log`, and a command running a script the
+  model just wrote all start with an innocent word. mini-swe-agent's `confirm` mode
+  uses a regex whitelist. *Teaches:* parsing shell (or not trying to, with `shlex` and
+  refusing `;`, `|`, `$(`, backticks); allow-lists vs deny-lists.
+- **Sandboxing commands.** Approval is `run_command`'s only guardrail. Neither the path
+  check nor the `.env` refusal applies to it, so a yes to `cat .env` sends the key to
+  the API. Run commands under bubblewrap (`bwrap`, Linux) or in a container, with the
+  project mounted and `.env` hidden. Claude Code and Codex both sandbox commands.
+  *Teaches:* the gap between "asked" and "contained"; what a sandbox can and can't
+  stop (network, other files, CPU).
 - **Listing and searching files** (`list_files`, `glob`, `grep`). Today the model must
   guess file names. *Teaches:* `pathlib.glob`, ignoring `.git` and `.venv`, limiting
   output size so one call can't flood the context.
@@ -72,6 +82,11 @@ what it would teach.
   only, still out of `messages`. Not every model returns reasoning, and field names vary
   (`reasoning`, `reasoning_content`; see research.md). *Teaches:* that "the conversation"
   is just a list of dicts resent each time; how much hidden text a reply costs.
+- **Show command output to the user.** Only the model sees what `run_command`
+  returned; the user sees the command, then the model's summary of the result, which may
+  be wrong. Print the exit code and the first or last few lines, and the full output
+  with `--verbose`. *Teaches:* that the user and the model read different things, and
+  that a summary of a failure can hide it.
 - **`/context` and `/cost` commands.** Show how full the context window is and what the
   session has cost so far. They build on the token-counting and cost-display items
   above: those collect the numbers, these display them on request. *Teaches:* the same
@@ -98,8 +113,9 @@ what it would teach.
   configuration, but configuration the tests depend on.
 - **Plan mode (`/plan`).** While it's on, the model can read but not write, and it
   ends with a numbered plan. You approve the plan once, then it carries the plan out
-  with all tools back. Remove `write_file` from the tool list sent to the model, rather
-  than only refusing calls, so the model doesn't keep trying. pi skips plan mode on
+  with all tools back. Remove `write_file` (and `run_command`, or limit it to read-only
+  commands) from the tool list sent to the model, rather than only refusing calls, so
+  the model doesn't keep trying. pi skips plan mode on
   purpose ("skips features like sub-agents and plan mode") but has an example extension
   ([`examples/extensions/plan-mode`](https://github.com/earendil-works/pi/blob/77959d667edd855d2f008924296650c888653916/packages/coding-agent/examples/extensions/plan-mode/README.md)).
   It turns off edit and write, only allows read-only bash commands, picks out the steps
@@ -108,7 +124,7 @@ what it would teach.
   tool. *Teaches:* limiting tools by mode; removing a tool vs. refusing it; approving a
   plan instead of each change.
 - **Non-interactive mode (`-p "prompt"`).** Run one turn and exit, for scripts and CI.
-  Needs a policy for approvals (deny all writes, or `--yes`). *Teaches:* argparse, exit
+  Needs a policy for approvals (deny all writes and commands, or `--yes`). *Teaches:* argparse, exit
   codes, and that unattended agents need stricter guardrails.
 - **Sessions saved to disk.** Save `messages` as JSON after each turn and offer
   `--resume`. The trace format is already most of the way there. *Teaches:*
@@ -211,6 +227,21 @@ These are about the repo and the agent editing it, not smallkoder itself.
   `Write`. A `PreToolUse` hook on `Bash` that refuses commands touching `tests/`, or a
   git pre-commit hook running the same checks on the staged diff, would close the gap.
   *Teaches:* defence in depth; where in the workflow a check belongs.
+- **`run_command` is POSIX only.** It needs `bash`, and uses `start_new_session` and
+  `os.killpg` to kill the whole process group. On Windows it would need `cmd` or
+  PowerShell, `CREATE_NEW_PROCESS_GROUP`, and a different way to kill a tree.
+  *Teaches:* where "portable Python" stops; process groups.
+- **Recorded commands must be deterministic.** On replay, recorded commands run again
+  for real, and their output has to match the trace exactly. `python3 hello.py` works;
+  `ls -l`, `date`, pytest timings or anything needing a missing tool would fail on
+  another machine. Only some scenarios work as traces. Another option is to record
+  command results and serve them back like model replies. *Teaches:* what to fake and
+  what to run for real in an end-to-end test.
+- **The model ignores advice in the system prompt.** The prompt says not to use
+  `run_command` to read files. In the re-recorded `two_turns` trace the model still
+  tried `cat -A greeting.txt` to check its own write (it was declined). If it matters,
+  enforce it in code; if not, drop the advice. *Teaches:* "a prompt is a request" again,
+  seen in a real trace.
 - **Line endings.** `read_text()` turns `\r\n` into `\n`, and `write_text()` writes `\n`.
   So `write_file` and `edit_file` silently convert a Windows (CRLF) file to LF, and a
   one-line edit becomes a whole-file change in git. Found while testing `edit_file`.

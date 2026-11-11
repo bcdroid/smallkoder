@@ -1,7 +1,13 @@
 """The tools the model can call, and the guardrails around them."""
 
 import json
+import os
+import signal
+import subprocess
 from pathlib import Path
+
+COMMAND_TIMEOUT = 30  # seconds
+OUTPUT_LIMIT = 10_000  # characters of command output sent back to the model
 
 
 def tool_schema(name: str, description: str, params: dict[str, str], flags: dict[str, str] | None = None) -> dict:
@@ -54,6 +60,14 @@ TOOLS = [
             "new_text": "The text to put in its place (may be empty, to delete).",
         },
         {"replace_all": "Optional, default false: replace every occurrence of old_text, not just one."},
+    ),
+    tool_schema(
+        "run_command",
+        "Run a shell command with bash in the working directory and return its exit code "
+        f"and output (stdout and stderr together, at most the last {OUTPUT_LIMIT} characters). "
+        f"Commands time out after {COMMAND_TIMEOUT} seconds and cannot read input. "
+        "The user must approve each command.",
+        {"command": "The shell command to run."},
     ),
 ]
 
@@ -160,6 +174,62 @@ def edit_file(root: Path, path: str, old_text: str, new_text: str, replace_all: 
     return f"Edited {path}: replaced {count} occurrence{'s' if count > 1 else ''}"
 
 
+def keep_end(text: str, limit: int = OUTPUT_LIMIT) -> str:
+    """At most limit characters: the end, where errors and summaries usually are."""
+    if len(text) <= limit:
+        return text
+    return f"[... {len(text) - limit} characters cut ...]\n" + text[-limit:]
+
+
+def run_command(root: Path, command: str, approve_command, timeout: float = COMMAND_TIMEOUT) -> str:
+    """Run command with bash in root, if the user approves.
+
+    Unlike the file tools, there is no path check here: a command can touch
+    anything the user can. The approval prompt is the only guardrail.
+    """
+    if not command.strip():
+        raise ToolError("command is empty")
+    if not approve_command(command):
+        raise ToolError("the user declined this command")
+
+    env = {name: value for name, value in os.environ.items() if name != "OPENCODE_GO"}
+    try:
+        process = subprocess.Popen(
+            ["bash", "-c", command],
+            cwd=root,
+            env=env,
+            stdin=subprocess.DEVNULL,  # a command waiting for input gets EOF, not a hang
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,  # one stream, in the order it was written
+            start_new_session=True,  # its own process group, so we can kill all of it
+        )
+    except OSError as e:  # e.g. no bash on the PATH: an error result, not a crash
+        raise ToolError(f"could not start bash: {e}")
+    try:
+        output, _ = process.communicate(timeout=timeout)
+    except subprocess.TimeoutExpired:
+        # Kill the whole group: a background child (`server &`) would
+        # otherwise keep the pipe open and we would wait for it forever.
+        kill_group(process)
+        output, _ = process.communicate()  # what it printed before the timeout
+        text = keep_end(output.decode("utf-8", errors="replace"))
+        raise ToolError(f"command timed out after {timeout} s. Output so far:\n{text}")
+    except BaseException:
+        # Ctrl-C goes to smallkoder, not to the command (it has its own
+        # session), so stop the command before letting the interrupt through.
+        kill_group(process)
+        raise
+    return f"Exit code: {process.returncode}\n{keep_end(output.decode('utf-8', errors='replace'))}"
+
+
+def kill_group(process: subprocess.Popen) -> None:
+    try:
+        os.killpg(process.pid, signal.SIGKILL)
+    except ProcessLookupError:
+        pass  # already gone
+    process.wait()
+
+
 JSON_TYPES = {"string": str, "boolean": bool}
 
 
@@ -187,14 +257,24 @@ def parse_arguments(name: str, arguments: str) -> dict:
     return args
 
 
-def run_tool(name: str, arguments: str, root: Path, approve) -> str:
-    """Run one tool call. Always returns text for the model, even on errors."""
+def never(command: str) -> bool:
+    return False
+
+
+def run_tool(name: str, arguments: str, root: Path, approve, approve_command=never) -> str:
+    """Run one tool call. Always returns text for the model, even on errors.
+
+    approve(path, old_text, new_text) -> bool asks about writes, and
+    approve_command(command) -> bool about commands (by default: no).
+    """
     try:
         args = parse_arguments(name, arguments)
         if name == "read_file":
             return read_file(root, args["path"])
         if name == "edit_file":
             return edit_file(root, args["path"], args["old_text"], args["new_text"], args["replace_all"], approve)
+        if name == "run_command":
+            return run_command(root, args["command"], approve_command)
         return write_file(root, args["path"], args["content"], approve)
     except ToolError as e:
         return f"Error: {e}"

@@ -96,6 +96,38 @@ def test_eof_at_approval_prompt_declines(root):
     assert not (root / "a.py").exists()
 
 
+def test_command_is_shown_and_asked_about(root):
+    model = ScriptedModel([tool_calls(("run_command", {"command": "touch made.txt"})), answer("Done.")])
+    fake_input = scripted_input("make a file", "y")
+    output = []
+
+    repl(model, root, input=fake_input, output=output.append)
+
+    assert "The model wants to run: touch made.txt" in "\n".join(output)
+    assert "Run this command? [y/N]" in fake_input.prompts[1]
+    assert (root / "made.txt").exists()
+
+
+def test_long_commands_are_shown_in_full(root):
+    command = "echo " + "x" * 200
+    model = ScriptedModel([tool_calls(("run_command", {"command": command})), answer("ok")])
+    printed = run(model, root, "echo", "n")
+    assert f"The model wants to run: {command}" in printed
+
+
+@pytest.mark.parametrize("reply", ["n", "", "maybe"])
+def test_anything_but_yes_declines_a_command(root, reply):
+    model = ScriptedModel([tool_calls(("run_command", {"command": "touch made.txt"})), answer("ok")])
+    run(model, root, "make a file", reply)
+    assert not (root / "made.txt").exists()
+
+
+def test_eof_at_command_prompt_declines(root):
+    model = ScriptedModel([tool_calls(("run_command", {"command": "touch made.txt"})), answer("ok")])
+    run(model, root, "make a file")  # input ends before the approval question
+    assert not (root / "made.txt").exists()
+
+
 def test_api_error_is_shown_and_conversation_rolled_back(root):
     model = ScriptedModel([ModelError("HTTP 500: server sad"), answer("Second try worked.")])
     printed = run(model, root, "first", "second")

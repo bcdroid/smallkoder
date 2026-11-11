@@ -202,7 +202,18 @@ The plan above is kept as written; the code differs in small ways:
 - After v0.1 (2026-11-09): the "standard library only" rule was dropped, and uv now
   does all package management (`uv sync`, `uv add`, `uv run`; `uv.lock` committed).
   pytest moved to a `dev` dependency group, and the test hook runs `uv run pytest`.
-- After v0.1 (2026-11-09): a third tool, `edit_file(path, old_text, new_text,
+- After v0.1 (2026-11-09): a third tool, `run_command(command)`, from the backlog. It
+  runs `bash -c` in the working directory with stdin closed, stderr merged into stdout,
+  a 30 s timeout (the whole process group is killed on timeout or Ctrl-C), the last
+  10,000 characters of output kept, and `OPENCODE_GO` removed from its environment.
+  Every command needs approval through a second callback,
+  `approve_command(command) -> bool`, which `run_tool`, `run_turn` and the CLI take as a
+  keyword argument. Without one, every command is declined. The path and `.env` checks
+  apply to the file tools only. A command is never checked, only approved (see the
+  README's guardrails). The traces were re-recorded, and `run_program` and
+  `declined_command` were added. A trace's `approvals` list holds the write and command
+  answers in the order they were asked.
+- After v0.1 (2026-11-09): a fourth tool, `edit_file(path, old_text, new_text,
   replace_all)`, from the backlog. Research and benchmark:
   [edit-tool-research.md](edit-tool-research.md).
   - `old_text` must match exactly, and only once unless `replace_all` is true. The
@@ -216,8 +227,10 @@ The plan above is kept as written; the code differs in small ways:
   - A declined edit returns the same "the user declined this write" error as a declined
     write.
   - The approval prompt now says "wants to change" instead of "wants to replace".
-  - The system prompt names three tools, so every trace was re-recorded, and two
-    scenarios were added: `edit_function` and `rename_everywhere`.
+  - The system prompt names the tools, so every trace was re-recorded, and two
+    scenarios were added: `edit_function` and `rename_everywhere`. Built on its own
+    branch alongside `run_command`; after the merge (2026-11-11) every trace was
+    recorded again with all four tools. Spec: [specs/edit-file.md](specs/edit-file.md).
 
 ## Out of scope for v0.1
 

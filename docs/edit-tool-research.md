@@ -573,4 +573,6 @@ choices made while building it:
   The line-ending conversion is in the backlog.
 
 Follow-ups (looser matching, several edits per call, `apply_patch` for GPT) are in
-[backlog.md](backlog.md).
+[backlog.md](backlog.md). The spec is [specs/edit-file.md](specs/edit-file.md); the
+decisions are ADRs [0007](adr/0007-edit-by-exact-unique-replacement.md) to
+[0011](adr/0011-edits-share-write-approval.md).

@@ -1,0 +1,289 @@
+{
+  "description": "The user says no to a command; it must not run.",
+  "model": "mimo-v2.6-flash",
+  "recorded": "2026-11-11",
+  "files_before": {
+    "notes.txt": "Remember the milk.\n"
+  },
+  "prompts": [
+    "Use run_command to delete notes.txt with rm."
+  ],
+  "approvals": [
+    false
+  ],
+  "answers": [
+    "The command was declined, so `notes.txt` was not deleted. Let me know if you'd like something else instead."
+  ],
+  "files_after": {
+    "notes.txt": "Remember the milk.\n"
+  },
+  "exchanges": [
+    {
+      "request": {
+        "messages": [
+          {
+            "role": "system",
+            "content": "You are smallkoder, a small coding assistant working in the user's project directory. You have four tools: read_file returns a file's contents, edit_file replaces exact text in a file, write_file replaces a whole file or creates a new one, and run_command runs a shell command in the project directory and returns its exit code and output. Use paths relative to the project directory. Read a file before changing it. To change part of a file, use edit_file; use write_file for new files. Use run_command for things like running programs, tests or git, not for reading or changing files. The user approves every change and every command; if they decline, do not try again unless they ask. Keep your answers short."
+          },
+          {
+            "role": "user",
+            "content": "Use run_command to delete notes.txt with rm."
+          }
+        ],
+        "tools": [
+          {
+            "type": "function",
+            "function": {
+              "name": "read_file",
+              "description": "Read a text file in the working directory and return its contents.",
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "path": {
+                    "type": "string",
+                    "description": "File path, relative to the working directory."
+                  }
+                },
+                "required": [
+                  "path"
+                ],
+                "additionalProperties": false
+              }
+            }
+          },
+          {
+            "type": "function",
+            "function": {
+              "name": "write_file",
+              "description": "Replace the entire contents of a file, creating it if needed. Always send the complete new file, not just the changed part. The user must approve each write.",
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "path": {
+                    "type": "string",
+                    "description": "File path, relative to the working directory."
+                  },
+                  "content": {
+                    "type": "string",
+                    "description": "The complete new contents of the file."
+                  }
+                },
+                "required": [
+                  "path",
+                  "content"
+                ],
+                "additionalProperties": false
+              }
+            }
+          },
+          {
+            "type": "function",
+            "function": {
+              "name": "edit_file",
+              "description": "Change part of an existing file by replacing old_text with new_text. old_text must match the file exactly, including indentation and line breaks, and must appear exactly once: include enough surrounding lines to make it unique. Set replace_all to true to replace every occurrence instead. The user must approve each edit.",
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "path": {
+                    "type": "string",
+                    "description": "File path, relative to the working directory."
+                  },
+                  "old_text": {
+                    "type": "string",
+                    "description": "The exact text to find in the file."
+                  },
+                  "new_text": {
+                    "type": "string",
+                    "description": "The text to put in its place (may be empty, to delete)."
+                  },
+                  "replace_all": {
+                    "type": "boolean",
+                    "description": "Optional, default false: replace every occurrence of old_text, not just one."
+                  }
+                },
+                "required": [
+                  "path",
+                  "old_text",
+                  "new_text"
+                ],
+                "additionalProperties": false
+              }
+            }
+          },
+          {
+            "type": "function",
+            "function": {
+              "name": "run_command",
+              "description": "Run a shell command with bash in the working directory and return its exit code and output (stdout and stderr together, at most the last 10000 characters). Commands time out after 30 seconds and cannot read input. The user must approve each command.",
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "command": {
+                    "type": "string",
+                    "description": "The shell command to run."
+                  }
+                },
+                "required": [
+                  "command"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        ]
+      },
+      "response": {
+        "role": "assistant",
+        "content": null,
+        "tool_calls": [
+          {
+            "id": "call_03ad51b055054386aeeccc87",
+            "type": "function",
+            "function": {
+              "name": "run_command",
+              "arguments": "{\"command\": \"rm notes.txt\"}"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "request": {
+        "messages": [
+          {
+            "role": "system",
+            "content": "You are smallkoder, a small coding assistant working in the user's project directory. You have four tools: read_file returns a file's contents, edit_file replaces exact text in a file, write_file replaces a whole file or creates a new one, and run_command runs a shell command in the project directory and returns its exit code and output. Use paths relative to the project directory. Read a file before changing it. To change part of a file, use edit_file; use write_file for new files. Use run_command for things like running programs, tests or git, not for reading or changing files. The user approves every change and every command; if they decline, do not try again unless they ask. Keep your answers short."
+          },
+          {
+            "role": "user",
+            "content": "Use run_command to delete notes.txt with rm."
+          },
+          {
+            "role": "assistant",
+            "content": null,
+            "tool_calls": [
+              {
+                "id": "call_03ad51b055054386aeeccc87",
+                "type": "function",
+                "function": {
+                  "name": "run_command",
+                  "arguments": "{\"command\": \"rm notes.txt\"}"
+                }
+              }
+            ]
+          },
+          {
+            "role": "tool",
+            "tool_call_id": "call_03ad51b055054386aeeccc87",
+            "content": "Error: the user declined this command"
+          }
+        ],
+        "tools": [
+          {
+            "type": "function",
+            "function": {
+              "name": "read_file",
+              "description": "Read a text file in the working directory and return its contents.",
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "path": {
+                    "type": "string",
+                    "description": "File path, relative to the working directory."
+                  }
+                },
+                "required": [
+                  "path"
+                ],
+                "additionalProperties": false
+              }
+            }
+          },
+          {
+            "type": "function",
+            "function": {
+              "name": "write_file",
+              "description": "Replace the entire contents of a file, creating it if needed. Always send the complete new file, not just the changed part. The user must approve each write.",
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "path": {
+                    "type": "string",
+                    "description": "File path, relative to the working directory."
+                  },
+                  "content": {
+                    "type": "string",
+                    "description": "The complete new contents of the file."
+                  }
+                },
+                "required": [
+                  "path",
+                  "content"
+                ],
+                "additionalProperties": false
+              }
+            }
+          },
+          {
+            "type": "function",
+            "function": {
+              "name": "edit_file",
+              "description": "Change part of an existing file by replacing old_text with new_text. old_text must match the file exactly, including indentation and line breaks, and must appear exactly once: include enough surrounding lines to make it unique. Set replace_all to true to replace every occurrence instead. The user must approve each edit.",
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "path": {
+                    "type": "string",
+                    "description": "File path, relative to the working directory."
+                  },
+                  "old_text": {
+                    "type": "string",
+                    "description": "The exact text to find in the file."
+                  },
+                  "new_text": {
+                    "type": "string",
+                    "description": "The text to put in its place (may be empty, to delete)."
+                  },
+                  "replace_all": {
+                    "type": "boolean",
+                    "description": "Optional, default false: replace every occurrence of old_text, not just one."
+                  }
+                },
+                "required": [
+                  "path",
+                  "old_text",
+                  "new_text"
+                ],
+                "additionalProperties": false
+              }
+            }
+          },
+          {
+            "type": "function",
+            "function": {
+              "name": "run_command",
+              "description": "Run a shell command with bash in the working directory and return its exit code and output (stdout and stderr together, at most the last 10000 characters). Commands time out after 30 seconds and cannot read input. The user must approve each command.",
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "command": {
+                    "type": "string",
+                    "description": "The shell command to run."
+                  }
+                },
+                "required": [
+                  "command"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        ]
+      },
+      "response": {
+        "role": "assistant",
+        "content": "The command was declined, so `notes.txt` was not deleted. Let me know if you'd like something else instead."
+      }
+    }
+  ]
+}

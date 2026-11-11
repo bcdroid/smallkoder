@@ -37,6 +37,14 @@ def repl(model, root: Path, input=input, output=print):
             return False
         return reply.strip().lower() in ("y", "yes")
 
+    def approve_command(command):
+        output(f"  The model wants to run: {command}")  # in full: never approve a shortened command
+        try:
+            reply = input("  Run this command? [y/N] ")
+        except EOFError:
+            return False
+        return reply.strip().lower() in ("y", "yes")
+
     def show_tool(name, arguments):
         output(f"  [{name}] {shorten(arguments)}")
 
@@ -55,7 +63,7 @@ def repl(model, root: Path, input=input, output=print):
 
         checkpoint = len(messages)
         try:
-            output(run_turn(model, messages, line, root, approve, on_tool=show_tool))
+            output(run_turn(model, messages, line, root, approve, on_tool=show_tool, approve_command=approve_command))
         except ModelError as e:
             output(f"API error: {e}")
             del messages[checkpoint:]  # forget the failed turn; the user can retry
