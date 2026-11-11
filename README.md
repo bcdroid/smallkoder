@@ -57,7 +57,7 @@ Suggested order:
 
 | File | Lines | What it does |
 |---|---|---|
-| [`smallkoder/tools.py`](smallkoder/tools.py) | 199 | `read_file`, `write_file`, `run_command`, their JSON schemas, path checks, and `run_tool`, which turns every problem into an `Error: ...` string for the model |
+| [`smallkoder/tools.py`](smallkoder/tools.py) | 202 | `read_file`, `write_file`, `run_command`, their JSON schemas, path checks, and `run_tool`, which turns every problem into an `Error: ...` string for the model |
 | [`smallkoder/agent.py`](smallkoder/agent.py) | 50 | **The agent loop.** Ask the model; if it wants tools, run them, append the results, and ask again; stop when it answers |
 | [`smallkoder/model.py`](smallkoder/model.py) | 107 | The only network code: one HTTP POST to OpenCode Go with `urllib` |
 | [`smallkoder/cli.py`](smallkoder/cli.py) | 85 | The prompt, the approval questions (a diff for writes, the full command for commands), Ctrl-D, API-error recovery |
@@ -70,7 +70,7 @@ what lets the tests swap in fakes.
 ## Tests
 
 ```sh
-uv run pytest               # 158 tests, ~2.5 s, no network, no key needed
+uv run pytest               # 160 tests, ~2.5 s, no network, no key needed
 ```
 
 | Kind | Where | What it shows |

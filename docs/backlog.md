@@ -216,12 +216,6 @@ These are about the repo and the agent editing it, not smallkoder itself.
   `Write`. A `PreToolUse` hook on `Bash` that refuses commands touching `tests/`, or a
   git pre-commit hook running the same checks on the staged diff, would close the gap.
   *Teaches:* defence in depth; where in the workflow a check belongs.
-- **`run_command` crashes if `bash` is missing.** `Popen` raises `FileNotFoundError`,
-  which is not a `ToolError`, so it escapes `run_tool` and ends the session instead of
-  becoming `Error: bash not found`. Found while writing the spec
-  (`docs/specs/run-command.md`). Fix: catch `OSError` around `Popen`, plus a test with a
-  `PATH` that has no bash. *Teaches:* "errors become results" holds only for the errors
-  you thought of; writing a spec finds gaps that tests didn't.
 - **`run_command` is POSIX only.** It needs `bash`, and uses `start_new_session` and
   `os.killpg` to kill the whole process group. On Windows it would need `cmd` or
   PowerShell, `CREATE_NEW_PROCESS_GROUP`, and a different way to kill a tree.

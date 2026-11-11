@@ -1,6 +1,6 @@
 # Spec: `run_command` tool
 
-- **Status:** implemented (commits `22cfc2c`..`f5c1ac9`, 2026-11-09)
+- **Status:** implemented (commits `22cfc2c`..`f5c1ac9`, 2026-11-09; missing-bash fix 2026-11-11)
 - **Written:** 2026-11-11, *after* the implementation, from the code and tests. Future
   features get their spec before the code (see [CLAUDE.md](../../CLAUDE.md)).
 - **Backlog item:** "Bash / run-command tool with a permission prompt"
@@ -69,6 +69,10 @@ In order:
    - stdout: a pipe; stderr: merged into stdout, in the order written;
    - a new session (`start_new_session=True`), so the command and everything it starts
      share one process group, separate from smallkoder's.
+
+   If the process can't be started (`OSError`: no `bash` on the `PATH`, a working
+   directory that has gone), fail with `could not start bash: <the OS error>`. `bash` is
+   looked up on the `PATH` of the command's environment.
 4. **Wait** up to `timeout` seconds for the output pipe to close and the process to exit.
 5. **Result.** Return `Exit code: <N>\n<output>`. `<output>` is decoded as UTF-8 with
    invalid bytes replaced, then cut by `keep_end`. A non-zero exit code is a normal
@@ -108,6 +112,7 @@ As with every tool, failures are `ToolError`s, which `run_tool` turns into
 | Empty or whitespace command | `Error: command is empty` |
 | User said no, or no approver given | `Error: the user declined this command` |
 | Timeout | `Error: command timed out after 30 s. Output so far:\n...` |
+| `bash` can't be started | `Error: could not start bash: [Errno 2] No such file or directory: 'bash'` |
 | Missing or extra argument, not a string | the usual `parse_arguments` errors |
 
 ## The CLI
@@ -153,6 +158,7 @@ Why there is no command-text check: [ADR 0003](../adr/0003-approval-is-the-only-
 | Exit code and output, working directory, stderr merged, bash syntax | `tests/test_tools.py::test_run_command_*` |
 | Declined: nothing runs; empty: not asked | `test_run_command_declined_does_not_run`, `..._refuses_empty_command_without_asking` |
 | Key hidden, stdin closed | `test_run_command_hides_the_api_key`, `..._cannot_read_input` |
+| No `bash`: an error result, not a crash | `test_run_command_without_bash_is_a_tool_error`, `test_run_tool_without_bash_reports_an_error` |
 | Timeout with partial output; background child killed | `..._times_out_and_keeps_partial_output`, `..._timeout_kills_background_children` |
 | Ctrl-C kills the process group | `test_run_command_ctrl_c_kills_the_command` |
 | Output limit | `test_keep_end_*`, `test_run_command_output_is_limited` |
@@ -163,9 +169,9 @@ Why there is no command-text check: [ADR 0003](../adr/0003-approval-is-the-only-
 
 ## Known gaps
 
-- **`bash` not installed.** `Popen` then raises `FileNotFoundError`, which is not a
-  `ToolError`, so it escapes `run_tool` and crashes the turn instead of becoming an
-  error result. Found while writing this spec; not yet fixed (see backlog).
+- ~~**`bash` not installed.**~~ Fixed 2026-11-11. Writing this spec found it: `Popen`
+  raised `FileNotFoundError`, which escaped `run_tool` and ended the session. It is now
+  an error result (see Errors).
 - POSIX only (`bash`, `start_new_session`, `os.killpg`).
 - A process that calls `setsid` itself leaves the group and survives a kill.
 - Output is read whole into memory before being cut; a command printing gigabytes

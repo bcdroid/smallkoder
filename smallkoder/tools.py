@@ -123,15 +123,18 @@ def run_command(root: Path, command: str, approve_command, timeout: float = COMM
         raise ToolError("the user declined this command")
 
     env = {name: value for name, value in os.environ.items() if name != "OPENCODE_GO"}
-    process = subprocess.Popen(
-        ["bash", "-c", command],
-        cwd=root,
-        env=env,
-        stdin=subprocess.DEVNULL,  # a command waiting for input gets EOF, not a hang
-        stdout=subprocess.PIPE,
-        stderr=subprocess.STDOUT,  # one stream, in the order it was written
-        start_new_session=True,  # its own process group, so we can kill all of it
-    )
+    try:
+        process = subprocess.Popen(
+            ["bash", "-c", command],
+            cwd=root,
+            env=env,
+            stdin=subprocess.DEVNULL,  # a command waiting for input gets EOF, not a hang
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,  # one stream, in the order it was written
+            start_new_session=True,  # its own process group, so we can kill all of it
+        )
+    except OSError as e:  # e.g. no bash on the PATH: an error result, not a crash
+        raise ToolError(f"could not start bash: {e}")
     try:
         output, _ = process.communicate(timeout=timeout)
     except subprocess.TimeoutExpired:
